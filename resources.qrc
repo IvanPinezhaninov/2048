@@ -1,0 +1,15 @@
+<RCC>
+    <qresource prefix="/">
+        <file>fonts/ClearSans-Regular.ttf</file>
+        <file>fonts/ClearSans-Bold.ttf</file>
+        <file>qml/Constants.js</file>
+        <file>qml/Tile.qml</file>
+        <file>qml/MainWindow.qml</file>
+        <file>qml/Game.qml</file>
+        <file>qml/Gameboard.qml</file>
+        <file>qml/ScoreLabel.qml</file>
+        <file>qml/Button.qml</file>
+        <file>qml/DefeatScreen.qml</file>
+        <file>qml/WinScreen.qml</file>
+    </qresource>
+</RCC>
