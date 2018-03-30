@@ -492,7 +492,7 @@ void GamePrivate::readSettings()
 {
     Q_ASSERT(m_windowQuickItem);
 
-    setBestScore(m_settings->value(QLatin1Literal(WINDOW_X_SETTING_KEY_NAME)).toInt());
+    setBestScore(m_settings->value(QLatin1Literal(BEST_SCORE_SETTING_KEY_NAME)).toInt());
 
     if (!m_settings->contains(QLatin1Literal(WINDOW_X_SETTING_KEY_NAME))) {
         QRect geometry = m_windowQuickItem->geometry();
