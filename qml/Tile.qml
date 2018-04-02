@@ -1,4 +1,4 @@
-import QtQuick 2.1
+import QtQuick 2.0
 import 'qrc:/qml/Constants.js' as Constants
 
 Rectangle {
