@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=${DESKTOP_ENTRY_VERSION}
+Name=2048
+GenericName=Join the numbers and get to the 2048 tile!
+Comment=2048 Game
+Categories=Game
+Exec=${DESKTOP_ENTRY_EXEC}
+Icon=2048
+Terminal=false
+Type=Application
