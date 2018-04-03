@@ -10,8 +10,6 @@ Window {
     minimumWidth: 520
     minimumHeight: 660
 
-    visible: true
-
     Rectangle {
         id: background
 

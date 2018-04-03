@@ -499,6 +499,7 @@ void GamePrivate::readSettings()
         const QPoint &centerOfScreen = QGuiApplication::primaryScreen()->availableGeometry().center();
         geometry.moveCenter(centerOfScreen);
         m_windowQuickItem->setGeometry(geometry);
+        m_windowQuickItem->setVisibility(QWindow::AutomaticVisibility);
         return;
     }
 
@@ -506,6 +507,7 @@ void GamePrivate::readSettings()
     m_windowQuickItem->setY(m_settings->value(QLatin1Literal(WINDOW_Y_SETTING_KEY_NAME)).toInt());
     m_windowQuickItem->setWidth(m_settings->value(QLatin1Literal(WINDOW_WIDTH_SETTING_KEY_NAME)).toInt());
     m_windowQuickItem->setHeight(m_settings->value(QLatin1Literal(WINDOW_HEIGHT_SETTING_KEY_NAME)).toInt());
+    m_windowQuickItem->setVisibility(QWindow::AutomaticVisibility);
 }
 
 
