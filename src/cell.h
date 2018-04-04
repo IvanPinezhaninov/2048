@@ -41,6 +41,11 @@ public:
     explicit Cell(QQuickItem *cellQuickItem, QObject *parent = nullptr);
     ~Cell();
 
+    qreal x() const;
+    qreal y() const;
+    qreal width() const;
+    qreal height() const;
+
     std::shared_ptr<Tile> tile() const;
 
 public slots:

@@ -20,9 +20,8 @@
 ***************************************************************************/
 
 
-#include "game.h"
-
 #include "cell.h"
+#include "game.h"
 #include "gameboard.h"
 #include "tile.h"
 
@@ -72,7 +71,7 @@ static const int WINNING_VALUE = 2048;
 class GamePrivate final
 {
 public:
-    enum GameState : quint8 {
+    enum GameState : quint16 {
         Play,
         Win,
         Defeat,
@@ -129,10 +128,10 @@ public:
     QList<std::shared_ptr<Tile>> m_tiles;
     QList<std::shared_ptr<Tile>> m_aboutToOrphanedTiles;
     QList<std::shared_ptr<Tile>> m_orphanedTiles;
-    int m_animatingTilesCount;
+    int m_movingTilesCount;
     bool m_isKeyEventsBlocked;
-    GameState m_gameState;
     bool m_won;
+    GameState m_gameState;
 };
 
 
@@ -144,10 +143,10 @@ GamePrivate::GamePrivate(Game *parent) :
     m_gameQuickItem(nullptr),
     m_randomEngine(std::random_device()()),
     m_randomDistribution(0.0, 1.0),
-    m_animatingTilesCount(0),
+    m_movingTilesCount(0),
     m_isKeyEventsBlocked(false),
-    m_gameState(Play),
-    m_won(false)
+    m_won(false),
+    m_gameState(Play)
 {
 }
 
@@ -234,17 +233,16 @@ void GamePrivate::createTile(int cellIndex, int value)
 
     if (m_orphanedTiles.empty()) {
         tile = std::make_shared<Tile>(m_tileQmlComponent.get(), q_check_ptr(m_gameboard->tilesParent()));
-        QObject::connect(tile.get(), &Tile::moveAnimationFinished, q, &Game::onTileMoveAnimationFinished);
+        QObject::connect(tile.get(), &Tile::moveFinished, q, &Game::onTileMoveFinished);
     } else {
         tile = m_orphanedTiles.takeLast();
     }
 
-    tile->setValue(value);
-    tile->setDisplayValue(value);
     m_tiles.append(tile);
 
     auto cell = m_cells.value(cellIndex);
     cell->setTile(tile);
+    tile->setValue(value);
 }
 
 
@@ -341,7 +339,6 @@ void GamePrivate::move(GamePrivate::MoveDirection direction)
             auto previousCell = m_cells.value(previousCellindex);
             if (!previousCell->tile()) {
                 auto tile = cell->tile();
-                tile->setMoveAnimationEnabled(true);
                 tile->setZ(0);
                 moveTile(cell, previousCell);
                 continue;
@@ -350,7 +347,6 @@ void GamePrivate::move(GamePrivate::MoveDirection direction)
             if (previousCell->tile()->value() == cell->tile()->value()) {
                 auto tile = cell->tile();
                 tile->setValue(tile->value() * 2);
-                tile->setMoveAnimationEnabled(true);
                 tile->setZ(previousCell->tile()->z() + 1);
                 m_aboutToOrphanedTiles.append(previousCell->tile());
                 m_tiles.removeOne(previousCell->tile());
@@ -396,7 +392,6 @@ void GamePrivate::move(GamePrivate::MoveDirection direction)
                     break;
                 }
                 previousCell = m_cells.value(previousCellindex);
-                cell->tile()->setMoveAnimationEnabled(true);
                 cell->tile()->setZ(0);
                 moveTile(cell, previousCell);
                 continue;
@@ -406,7 +401,7 @@ void GamePrivate::move(GamePrivate::MoveDirection direction)
         }
     }
 
-    setKeyboardBlocked(0 != m_animatingTilesCount);
+    setKeyboardBlocked(0 != m_movingTilesCount);
 }
 
 
@@ -415,7 +410,7 @@ void GamePrivate::moveTile(const std::shared_ptr<Cell> &sourceCell, const std::s
     auto tile = sourceCell->tile();
     sourceCell->setTile(nullptr);
     targetCell->setTile(tile);
-    ++m_animatingTilesCount;
+    ++m_movingTilesCount;
 }
 
 
@@ -448,8 +443,7 @@ int GamePrivate::bestScore() const
 void GamePrivate::setOrphaned(const std::shared_ptr<Tile> &tile)
 {
     if (!m_orphanedTiles.contains(tile)) {
-        tile->setValue(0);
-        tile->setDisplayValue(0);
+        tile->resetValue();
         m_orphanedTiles.append(tile);
     }
 }
@@ -605,8 +599,8 @@ void Game::onRootObjectCreated(QObject *object, const QUrl &url)
     Q_UNUSED(url)
 
     d->m_windowQuickItem = q_check_ptr(qobject_cast<QQuickWindow*>(object));
+    d->m_windowQuickItem->installEventFilter(this);
     d->m_gameQuickItem = q_check_ptr(object->findChild<QQuickItem*>(QLatin1Literal(GAME_OBJECT_NAME)));
-    d->m_gameQuickItem->installEventFilter(this);
     connect(d->m_gameQuickItem, SIGNAL(continueGameRequested()), this, SLOT(onContinueGameRequested()));
     connect(d->m_gameQuickItem, SIGNAL(restartGameRequested()), this, SLOT(onRestartGameRequested()));
 
@@ -632,17 +626,17 @@ void Game::onRestartGameRequested()
 }
 
 
-void Game::onTileMoveAnimationFinished()
+void Game::onTileMoveFinished()
 {
+    Q_ASSERT(d->m_movingTilesCount >= 0);
+
     Tile *tile = q_check_ptr(qobject_cast<Tile*>(sender()));
-    tile->setDisplayValue(tile->value());
-    tile->setMoveAnimationEnabled(false);
 
     if (WINNING_VALUE == tile->value() && GamePrivate::Continue != d->m_gameState) {
         d->m_won = true;
     }
 
-    if (0 == --d->m_animatingTilesCount) {
+    if (0 == --d->m_movingTilesCount) {
         int score = 0;
         for (const auto &tile : d->m_aboutToOrphanedTiles) {
             score += tile->value() * 2;

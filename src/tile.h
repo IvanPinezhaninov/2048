@@ -43,32 +43,28 @@ public:
     qreal x() const;
     qreal y() const;
     qreal z() const;
-
     qreal width() const;
     qreal height() const;
-    QRectF geometry() const;
 
     int value() const;
-    int displayValue() const;
-    bool isMoveAnimationEnabled() const;
 
   signals:
-    void moveAnimationFinished();
+    void moveFinished();
 
 public slots:
+    void setValue(int value);
+    void resetValue();
+
+    void move(const QRectF &location);
+
     void setX(qreal x);
     void setY(qreal y);
     void setZ(qreal z);
-
     void setWidth(qreal width);
     void setHeight(qreal height);
-    void setGeometry(const QRectF &rect);
-    void setGeometry(qreal x, qreal y, qreal width, qreal height);
 
-    void setValue(int value);
-    void setDisplayValue(int value);
-
-    void setMoveAnimationEnabled(bool enabled);
+private slots:
+    void onMoveFinished();
 
 private:
     Q_DISABLE_COPY(Tile)

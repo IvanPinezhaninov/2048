@@ -21,7 +21,6 @@
 
 
 #include "cell.h"
-
 #include "tile.h"
 
 #include <QQuickItem>
@@ -45,6 +44,30 @@ Cell::~Cell()
 }
 
 
+qreal Cell::x() const
+{
+    return m_cellQuickItem->x();
+}
+
+
+qreal Cell::y() const
+{
+    return m_cellQuickItem->y();
+}
+
+
+qreal Cell::width() const
+{
+    return m_cellQuickItem->width();
+}
+
+
+qreal Cell::height() const
+{
+    return m_cellQuickItem->height();
+}
+
+
 std::shared_ptr<Tile> Cell::tile() const
 {
     return m_tile.lock();
@@ -58,8 +81,7 @@ void Cell::setTile(const std::shared_ptr<Tile> &tile)
     m_tile = tile;
 
     if (auto tile = m_tile.lock()) {
-        tile->setGeometry(m_cellQuickItem->x(), m_cellQuickItem->y(),
-                          m_cellQuickItem->width(), m_cellQuickItem->height());
+        tile->move({ x(), y(), width(), height() });
     }
 }
 
@@ -69,7 +91,7 @@ void Cell::onXChanged()
     Q_ASSERT(m_cellQuickItem);
 
     if (auto tile = m_tile.lock()) {
-        tile->setX(m_cellQuickItem->x());
+        tile->setX(x());
     }
 }
 
@@ -79,7 +101,7 @@ void Cell::onYChanged()
     Q_ASSERT(m_cellQuickItem);
 
     if (auto tile = m_tile.lock()) {
-        tile->setY(m_cellQuickItem->y());
+        tile->setY(y());
     }
 }
 
@@ -89,7 +111,7 @@ void Cell::onWidthChanged()
     Q_ASSERT(m_cellQuickItem);
 
     if (auto tile = m_tile.lock()) {
-        tile->setWidth(m_cellQuickItem->width());
+        tile->setWidth(width());
     }
 }
 
@@ -99,6 +121,6 @@ void Cell::onHeightChanged()
     Q_ASSERT(m_cellQuickItem);
 
     if (auto tile = m_tile.lock()) {
-        tile->setHeight(m_cellQuickItem->height());
+        tile->setHeight(height());
     }
 }

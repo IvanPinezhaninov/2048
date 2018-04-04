@@ -27,14 +27,14 @@ Rectangle {
     id: tile
 
     property int value: 0
-    property bool moveAnimationEnabled: false
+    property int moveAnimationDuration: 100
 
     readonly property real largeFontRatio: 0.52
     readonly property real mediumFontRatio: 0.42
     readonly property real smallFontRatio: 0.32
     readonly property real xSmallFontRatio: 0.28
 
-    signal moveAnimationFinished
+    signal moveFinished
 
     color: '#eee4da'
     radius: Math.min(width, height) * Constants.tileRadiusRatio
@@ -52,17 +52,19 @@ Rectangle {
     }
 
     Behavior on x {
-        enabled: tile.moveAnimationEnabled
+        enabled: tile.value !== 0
         NumberAnimation {
-            duration: 100; easing.type: Easing.InOutQuad
+            duration: moveAnimationDuration
+            easing.type: Easing.InOutQuad
             onRunningChanged: onMoveAnimationRunningChanged(running)
         }
     }
 
     Behavior on y {
-        enabled: tile.moveAnimationEnabled
+        enabled: tile.value !== 0
         NumberAnimation {
-            duration: 100; easing.type: Easing.InOutQuad
+            duration: moveAnimationDuration
+            easing.type: Easing.InOutQuad
             onRunningChanged: onMoveAnimationRunningChanged(running)
         }
     }
@@ -229,7 +231,7 @@ Rectangle {
     function onMoveAnimationRunningChanged(running)
     {
         if (!running) {
-            moveAnimationFinished()
+            moveFinished()
         }
     }
 }

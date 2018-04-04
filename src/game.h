@@ -40,13 +40,13 @@ public:
     bool launch();
 
 protected:
-    bool eventFilter(QObject *object, QEvent *event);
+    bool eventFilter(QObject *object, QEvent *event) override;
 
 private slots:
     void onRootObjectCreated(QObject *object, const QUrl &url);
     void onContinueGameRequested();
     void onRestartGameRequested();
-    void onTileMoveAnimationFinished();
+    void onTileMoveFinished();
 
 private:
     Q_DISABLE_COPY(Game)

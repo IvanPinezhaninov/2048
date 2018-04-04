@@ -20,9 +20,8 @@
 ***************************************************************************/
 
 
-#include "gameboard.h"
-
 #include "cell.h"
+#include "gameboard.h"
 
 #include <QQuickItem>
 
@@ -96,8 +95,7 @@ QMap<int, std::shared_ptr<Cell>> Gameboard::cells() const
         QMetaObject::invokeMethod(d->m_gameboardQuickItem, GET_CELL_FUNCTION_NAME,
                                   Q_RETURN_ARG(QVariant, returnValue), Q_ARG(QVariant, i));
         QQuickItem *cellQuickItem = q_check_ptr(returnValue.value<QQuickItem*>());
-        const std::shared_ptr<Cell> cell(std::make_shared<Cell>(cellQuickItem));
-        cells.insert(i, cell);
+        cells.insert(i, std::make_shared<Cell>(cellQuickItem));
     }
 
     return cells;
