@@ -94,10 +94,11 @@ public:
     void setGameState(GameState state);
     void startGame();
     void startGame(int rows, int columns);
+    void continueGame();
     void createStartTiles();
     void createTile(int cellIndex, int value);
     void createRandomTile();
-    void setKeyboardBlocked(bool blocked);
+    void setMoveKeysBlocked(bool blocked);
     void move(MoveDirection direction);
     void moveTile(const std::shared_ptr<Cell> &sourceCell, const std::shared_ptr<Cell> &targetCell);
     void addScore(int value);
@@ -129,7 +130,7 @@ public:
     QList<std::shared_ptr<Tile>> m_aboutToOrphanedTiles;
     QList<std::shared_ptr<Tile>> m_orphanedTiles;
     int m_movingTilesCount;
-    bool m_isKeyEventsBlocked;
+    bool m_isMoveKeysBlocked;
     bool m_won;
     GameState m_gameState;
 };
@@ -144,7 +145,7 @@ GamePrivate::GamePrivate(Game *parent) :
     m_randomEngine(std::random_device()()),
     m_randomDistribution(0.0, 1.0),
     m_movingTilesCount(0),
-    m_isKeyEventsBlocked(false),
+    m_isMoveKeysBlocked(false),
     m_won(false),
     m_gameState(Play)
 {
@@ -215,7 +216,15 @@ void GamePrivate::startGame(int rows, int columns)
     clearTiles();
     updateCells();
     createStartTiles();
-    setKeyboardBlocked(false);
+    setMoveKeysBlocked(false);
+}
+
+
+void GamePrivate::continueGame()
+{
+    setGameState(GamePrivate::Continue);
+    createRandomTile();
+    setMoveKeysBlocked(false);
 }
 
 
@@ -264,9 +273,9 @@ void GamePrivate::createRandomTile()
 }
 
 
-void GamePrivate::setKeyboardBlocked(bool blocked)
+void GamePrivate::setMoveKeysBlocked(bool blocked)
 {
-    m_isKeyEventsBlocked = blocked;
+    m_isMoveKeysBlocked = blocked;
 }
 
 
@@ -401,7 +410,7 @@ void GamePrivate::move(GamePrivate::MoveDirection direction)
         }
     }
 
-    setKeyboardBlocked(0 != m_movingTilesCount);
+    setMoveKeysBlocked(0 != m_movingTilesCount);
 }
 
 
@@ -569,28 +578,42 @@ bool Game::launch()
 
 bool Game::eventFilter(QObject *object, QEvent *event)
 {
-  if (QEvent::KeyPress == event->type() && !d->m_isKeyEventsBlocked) {
-      QKeyEvent *keyEvent = static_cast<QKeyEvent*>(event);
+    if (QEvent::KeyPress == event->type()) {
+        QKeyEvent *keyEvent = static_cast<QKeyEvent*>(event);
+        if (d->m_isMoveKeysBlocked) {
+            if (Qt::Key_Enter == keyEvent->key() || Qt::Key_Return == keyEvent->key()) {
+                switch (d->m_gameState) {
+                case GamePrivate::Win:
+                    d->continueGame();
+                    return true;
+                case GamePrivate::Defeat:
+                    d->startGame();
+                    return true;
+                default:
+                    break;
+                }
+            }
+        } else {
+            switch (keyEvent->key()) {
+            case Qt::Key_Left:
+                d->move(GamePrivate::MoveLeft);
+                return true;
+            case Qt::Key_Right:
+                d->move(GamePrivate::MoveRight);
+                return true;
+            case Qt::Key_Up:
+                d->move(GamePrivate::MoveUp);
+                return true;
+            case Qt::Key_Down:
+                d->move(GamePrivate::MoveDown);
+                return true;
+            default:
+                break;
+            }
+        }
+    }
 
-      switch (keyEvent->key()) {
-      case Qt::Key_Left:
-          d->move(GamePrivate::MoveLeft);
-          return true;
-      case Qt::Key_Right:
-          d->move(GamePrivate::MoveRight);
-          return true;
-      case Qt::Key_Up:
-          d->move(GamePrivate::MoveUp);
-          return true;
-      case Qt::Key_Down:
-          d->move(GamePrivate::MoveDown);
-          return true;
-      default:
-          return QObject::eventFilter(object, event);
-      }
-  }
-
-  return QObject::eventFilter(object, event);
+    return QObject::eventFilter(object, event);
 }
 
 
@@ -614,9 +637,7 @@ void Game::onRootObjectCreated(QObject *object, const QUrl &url)
 
 void Game::onContinueGameRequested()
 {
-    d->createRandomTile();
-    d->setGameState(GamePrivate::Continue);
-    d->setKeyboardBlocked(false);
+    d->continueGame();
 }
 
 
@@ -657,7 +678,7 @@ void Game::onTileMoveFinished()
         if (d->isDefeat()) {
             d->setGameState(GamePrivate::Defeat);
         } else {
-            d->setKeyboardBlocked(false);
+            d->setMoveKeysBlocked(false);
         }
     }
 }
