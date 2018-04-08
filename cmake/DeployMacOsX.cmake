@@ -23,8 +23,10 @@ if(NOT EXISTS ${_qt5Core_install_prefix})
     message(FATAL_ERROR "Qt root directory not found")
 endif()
 
-set(QT_ROOT ${_qt5Core_install_prefix})
-set(BUNDLE_PATH "${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}.app")
+set(QT_ROOT_DIR ${_qt5Core_install_prefix})
+set(BUNDLE_DIR "${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}.app")
+set(BUNDLE_RESOURCES_DIR "${BUNDLE_DIR}/Contents/Resources")
+set(BUNDLE_PLUGINS_DIR "${BUNDLE_DIR}/Contents/PlugIns")
 
 # install qt.conf
 
@@ -36,26 +38,26 @@ file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/qt.conf"
 
 install(
     FILES "${CMAKE_CURRENT_BINARY_DIR}/qt.conf"
-    DESTINATION "${BUNDLE_PATH}/Contents/Resources"
+    DESTINATION "${BUNDLE_RESOURCES_DIR}"
 )
 
 # install libqcocoa.dylib
 
 install(
-    FILES "${QT_ROOT}/plugins/platforms/libqcocoa.dylib"
-    DESTINATION "${BUNDLE_PATH}/Contents/PlugIns/platforms"
+    FILES "${QT_ROOT_DIR}/plugins/platforms/libqcocoa.dylib"
+    DESTINATION "${BUNDLE_PLUGINS_DIR}/platforms"
 )
 
 # install libqtquick2plugin.dylib
 
 install(
-    FILES "${QT_ROOT}/qml/QtQuick.2/libqtquick2plugin.dylib"
-    DESTINATION "${BUNDLE_PATH}/Contents/PlugIns/qml"
+    FILES "${QT_ROOT_DIR}/qml/QtQuick.2/libqtquick2plugin.dylib"
+    DESTINATION "${BUNDLE_PLUGINS_DIR}/qml"
 )
 
 install(
-    FILES "${QT_ROOT}/qml/QtQuick.2/qmldir"
-    DESTINATION "${BUNDLE_PATH}/Contents/Resources/qml/QtQuick.2"
+    FILES "${QT_ROOT_DIR}/qml/QtQuick.2/qmldir"
+    DESTINATION "${BUNDLE_RESOURCES_DIR}/qml/QtQuick.2"
 )
 
 # create libqtquick2plugin.dylib symlink
@@ -63,20 +65,20 @@ install(
 install(CODE "
     execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink
         \"../../../PlugIns/qml/libqtquick2plugin.dylib\"
-        \"${BUNDLE_PATH}/Contents/Resources/qml/QtQuick.2/libqtquick2plugin.dylib\"
+        \"${BUNDLE_RESOURCES_DIR}/qml/QtQuick.2/libqtquick2plugin.dylib\"
     )"
 )
 
 # install libwindowplugin.dylib
 
 install(
-    FILES "${QT_ROOT}/qml/QtQuick/Window.2/libwindowplugin.dylib"
-    DESTINATION "${BUNDLE_PATH}/Contents/PlugIns/qml"
+    FILES "${QT_ROOT_DIR}/qml/QtQuick/Window.2/libwindowplugin.dylib"
+    DESTINATION "${BUNDLE_PLUGINS_DIR}/qml"
 )
 
 install(
-    FILES "${QT_ROOT}/qml/QtQuick/Window.2/qmldir"
-    DESTINATION "${BUNDLE_PATH}/Contents/Resources/qml/QtQuick/Window.2"
+    FILES "${QT_ROOT_DIR}/qml/QtQuick/Window.2/qmldir"
+    DESTINATION "${BUNDLE_RESOURCES_DIR}/qml/QtQuick/Window.2"
 )
 
 # create libwindowplugin.dylib symlink
@@ -84,26 +86,19 @@ install(
 install(CODE "
     execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink
         \"../../../../PlugIns/qml/libwindowplugin.dylib\"
-        \"${BUNDLE_PATH}/Contents/Resources//qml/QtQuick/Window.2/libwindowplugin.dylib\"
+        \"${BUNDLE_RESOURCES_DIR}/qml/QtQuick/Window.2/libwindowplugin.dylib\"
     )"
 )
 
 # fixup bundle
 
 set(FIXUP_LIBS
-    "${BUNDLE_PATH}/Contents/PlugIns/platforms/libqcocoa.dylib"
-    "${BUNDLE_PATH}/Contents/PlugIns/qml/libqtquick2plugin.dylib"
-    "${BUNDLE_PATH}/Contents/PlugIns/qml/libwindowplugin.dylib"
-)
-
-set(FIXUP_DIRS
-    "${QT_ROOT}/lib"
-    "${QT_ROOT}/plugins/platforms"
-    "${QT_ROOT}/qml/QtQuick.2"
-    "${QT_ROOT}/qml/QtQuick/Window.2"
+    "${BUNDLE_PLUGINS_DIR}/platforms/libqcocoa.dylib"
+    "${BUNDLE_PLUGINS_DIR}/qml/libqtquick2plugin.dylib"
+    "${BUNDLE_PLUGINS_DIR}/qml/libwindowplugin.dylib"
 )
 
 install(CODE "
     include(BundleUtilities)
-    fixup_bundle(\"${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}.app\" \"${FIXUP_LIBS}\" \"${FIXUP_DIRS}\")"
+    fixup_bundle(\"${BUNDLE_DIR}\" \"${FIXUP_LIBS}\" \"${QT_ROOT_DIR}/lib\")"
 )
