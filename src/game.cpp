@@ -464,48 +464,38 @@ bool GamePrivate::isDefeat() const
         return false;
     }
 
-    int rows = m_gameboard->rows();
-    int columns = m_gameboard->columns();
+    const int rows = m_gameboard->rows();
+    const int columns = m_gameboard->columns();
+
+    const int latestRow = rows - 1;
+    const int latestColumn = columns - 1;
+
+    std::shared_ptr<Cell> cell;
 
     for (int row = 0; row < rows; ++row) {
-        std::shared_ptr<Tile> previousTile;
         for (int column = 0; column < columns; ++column) {
             const int cellIndex = row * columns + column;
-            auto cell = m_cells.value(cellIndex);
-            auto tile = cell->tile();
-            Q_ASSERT(tile);
-            if (!previousTile) {
-                previousTile = tile;
-                continue;
+            cell = m_cells.value(cellIndex);
+            Q_ASSERT(cell->tile());
+            const int value = cell->tile()->value();
+
+            if (column < latestColumn) {
+                const int rightCellIndex = cellIndex + 1;
+                cell = m_cells.value(rightCellIndex);
+                Q_ASSERT(cell->tile());
+                if (value == cell->tile()->value()) {
+                    return false;
+                }
             }
 
-            if (tile->value() == previousTile->value()) {
-                return false;
+            if (row < latestRow) {
+                const int bottomCellIndex = cellIndex + columns;
+                cell = m_cells.value(bottomCellIndex);
+                Q_ASSERT(cell->tile());
+                if (value == cell->tile()->value()) {
+                    return false;
+                }
             }
-
-            previousTile = tile;
-        }
-    }
-
-    std::swap(rows, columns);
-
-    for (int row = 0; row < rows; ++row) {
-        std::shared_ptr<Tile> previousTile;
-        for (int column = 0; column < columns; ++column) {
-            const int cellIndex = column * rows + row;
-            auto cell = m_cells.value(cellIndex);
-            auto tile = cell->tile();
-            Q_ASSERT(tile);
-            if (!previousTile) {
-                previousTile = tile;
-                continue;
-            }
-
-            if (tile->value() == previousTile->value()) {
-                return false;
-            }
-
-            previousTile = tile;
         }
     }
 
