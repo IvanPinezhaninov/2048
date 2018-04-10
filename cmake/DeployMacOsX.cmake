@@ -28,6 +28,12 @@ set(BUNDLE_DIR "${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}.app")
 set(BUNDLE_RESOURCES_DIR "${BUNDLE_DIR}/Contents/Resources")
 set(BUNDLE_PLUGINS_DIR "${BUNDLE_DIR}/Contents/PlugIns")
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(LIB_SUFFIX "_debug.dylib")
+else()
+    set(LIB_SUFFIX "_debug.dylib")
+endif()
+
 # install qt.conf
 
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/qt.conf"
@@ -44,14 +50,14 @@ install(
 # install libqcocoa.dylib
 
 install(
-    FILES "${QT_ROOT_DIR}/plugins/platforms/libqcocoa.dylib"
+    FILES "${QT_ROOT_DIR}/plugins/platforms/libqcocoa${LIB_SUFFIX}"
     DESTINATION "${BUNDLE_PLUGINS_DIR}/platforms"
 )
 
 # install libqtquick2plugin.dylib
 
 install(
-    FILES "${QT_ROOT_DIR}/qml/QtQuick.2/libqtquick2plugin.dylib"
+    FILES "${QT_ROOT_DIR}/qml/QtQuick.2/libqtquick2plugin${LIB_SUFFIX}"
     DESTINATION "${BUNDLE_PLUGINS_DIR}/qml"
 )
 
@@ -64,15 +70,15 @@ install(
 
 install(CODE "
     execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink
-        \"../../../PlugIns/qml/libqtquick2plugin.dylib\"
-        \"${BUNDLE_RESOURCES_DIR}/qml/QtQuick.2/libqtquick2plugin.dylib\"
+        \"../../../PlugIns/qml/libqtquick2plugin${LIB_SUFFIX}\"
+        \"${BUNDLE_RESOURCES_DIR}/qml/QtQuick.2/libqtquick2plugin${LIB_SUFFIX}\"
     )"
 )
 
 # install libwindowplugin.dylib
 
 install(
-    FILES "${QT_ROOT_DIR}/qml/QtQuick/Window.2/libwindowplugin.dylib"
+    FILES "${QT_ROOT_DIR}/qml/QtQuick/Window.2/libwindowplugin${LIB_SUFFIX}"
     DESTINATION "${BUNDLE_PLUGINS_DIR}/qml"
 )
 
@@ -85,17 +91,17 @@ install(
 
 install(CODE "
     execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink
-        \"../../../../PlugIns/qml/libwindowplugin.dylib\"
-        \"${BUNDLE_RESOURCES_DIR}/qml/QtQuick/Window.2/libwindowplugin.dylib\"
+        \"../../../../PlugIns/qml/libwindowplugin${LIB_SUFFIX}\"
+        \"${BUNDLE_RESOURCES_DIR}/qml/QtQuick/Window.2/libwindowplugin${LIB_SUFFIX}\"
     )"
 )
 
 # fixup bundle
 
 set(FIXUP_LIBS
-    "${BUNDLE_PLUGINS_DIR}/platforms/libqcocoa.dylib"
-    "${BUNDLE_PLUGINS_DIR}/qml/libqtquick2plugin.dylib"
-    "${BUNDLE_PLUGINS_DIR}/qml/libwindowplugin.dylib"
+    "${BUNDLE_PLUGINS_DIR}/platforms/libqcocoa${LIB_SUFFIX}"
+    "${BUNDLE_PLUGINS_DIR}/qml/libqtquick2plugin${LIB_SUFFIX}"
+    "${BUNDLE_PLUGINS_DIR}/qml/libwindowplugin${LIB_SUFFIX}"
 )
 
 install(CODE "
