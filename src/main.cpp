@@ -34,7 +34,9 @@ int main(int argc, char *argv[])
     app.setOrganizationName(QLatin1Literal(ORGANIZATION_NAME));
     app.setApplicationName(QLatin1Literal(APPLICATION_NAME));
 
-    Game game;
+    Game::Game game;
+    QObject::connect(&app, &QGuiApplication::lastWindowClosed, &game, &Game::Game::shutdown);
+
     if (!game.launch()) {
         return EXIT_FAILURE;
     }

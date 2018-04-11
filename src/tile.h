@@ -32,13 +32,21 @@ class QQmlComponent;
 class QQuickItem;
 QT_END_NAMESPACE
 
+namespace Game {
 
-class Tile final : public QObject
+class Cell;
+
+using Cell_ptr = std::shared_ptr<Cell>;
+
+class Tile final : public QObject, public std::enable_shared_from_this<Tile>
 {
     Q_OBJECT
 public:
     explicit Tile(QQmlComponent *tileQmlComponent, QQuickItem *parent);
     ~Tile();
+
+    int value() const;
+    Cell_ptr cell() const;
 
     qreal x() const;
     qreal y() const;
@@ -46,15 +54,14 @@ public:
     qreal width() const;
     qreal height() const;
 
-    int value() const;
-
-  signals:
+signals:
     void moveFinished();
 
 public slots:
     void setValue(int value);
     void resetValue();
 
+    void setCell(const Cell_ptr &cell);
     void move(const QRectF &location);
 
     void setX(qreal x);
@@ -71,6 +78,9 @@ private:
 
     const std::unique_ptr<QQuickItem> m_tileQuickItem;
     int m_value;
+    std::weak_ptr<Cell> m_cell;
 };
+
+} // namespace Game
 
 #endif // TILE_H

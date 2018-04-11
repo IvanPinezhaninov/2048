@@ -121,7 +121,6 @@ Rectangle {
         State {
             name: '2'
             when: tile.value === 2
-            PropertyChanges { target: scaleAnimation; running: true }
         },
 
         State {
@@ -129,7 +128,7 @@ Rectangle {
             when: tile.value === 4
             PropertyChanges { target: tile; color: '#ede0c8' }
             PropertyChanges { target: tileText;  color: '#776e65' }
-            PropertyChanges { target: scaleAnimation; running: true }
+            PropertyChanges { target: bounceAnimation; running: true }
         },
 
         State {
@@ -221,10 +220,10 @@ Rectangle {
 
     transitions: [
         Transition {
-            from: '2'
-            to: '4'
-            PropertyAction { target: scaleAnimation; property: 'running'; value: false }
-            PropertyAction { target: bounceAnimation; property: 'running'; value: true }
+            from: 'orphaned'
+            to: '*'
+            PropertyAction { target: scaleAnimation; property: 'running'; value: true }
+            PropertyAction { target: bounceAnimation; property: 'running'; value: false }
         }
     ]
 

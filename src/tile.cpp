@@ -20,6 +20,7 @@
 ***************************************************************************/
 
 
+#include "cell.h"
 #include "tile.h"
 
 #include <QRectF>
@@ -33,6 +34,8 @@ static const char *const HEIGHT_PROPERTY_NAME = "height";
 static const char *const VALUE_PROPERTY_NAME = "value";
 
 
+namespace Game {
+
 Tile::Tile(QQmlComponent *tileQmlComponent, QQuickItem *parent) :
     QObject(parent),
     m_tileQuickItem(qobject_cast<QQuickItem*>(tileQmlComponent->create())),
@@ -45,6 +48,18 @@ Tile::Tile(QQmlComponent *tileQmlComponent, QQuickItem *parent) :
 
 Tile::~Tile()
 {
+}
+
+
+int Tile::value() const
+{
+    return m_value;
+}
+
+
+Cell_ptr Tile::cell() const
+{
+    return m_cell.lock();
 }
 
 
@@ -78,12 +93,6 @@ qreal Tile::height() const
 }
 
 
-int Tile::value() const
-{
-    return m_value;
-}
-
-
 void Tile::setValue(int value)
 {
     if (0 == m_value) {
@@ -98,6 +107,20 @@ void Tile::resetValue()
 {
     m_value = 0;
     m_tileQuickItem->setProperty(VALUE_PROPERTY_NAME, 0);
+}
+
+
+void Tile::setCell(const Cell_ptr &cell)
+{
+    m_cell = cell;
+
+    if (const auto &cell = m_cell.lock()) {
+        const auto &tile = shared_from_this();
+        if (cell->tile() != tile) {
+            cell->setTile(tile);
+            move({ cell->x(), cell->y(), cell->width(), cell->height() });
+        }
+    }
 }
 
 
@@ -156,3 +179,5 @@ void Tile::onMoveFinished()
     m_tileQuickItem->setProperty(VALUE_PROPERTY_NAME, m_value);
     emit moveFinished();
 }
+
+} // namespace Game

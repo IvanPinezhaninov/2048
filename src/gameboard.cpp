@@ -30,7 +30,11 @@ static const char *const CELLS_GRID_OBJECT_NAME = "CellsGrid";
 static const char *const ROWS_PROPERTY_NAME = "rows";
 static const char *const COLUMNS_PROPERTY_NAME = "columns";
 static const char *const CELLS_COUNT_PROPERTY_NAME = "cellsCount";
+
 static const char *const GET_CELL_FUNCTION_NAME = "getCell";
+
+
+namespace Game {
 
 class GameboardPrivate
 {
@@ -83,11 +87,11 @@ int Gameboard::columns() const
 }
 
 
-QMap<int, std::shared_ptr<Cell>> Gameboard::cells() const
+QMap<int, Cell_ptr> Gameboard::cells() const
 {
     Q_ASSERT(nullptr != d->m_gameboardQuickItem);
 
-    QMap<int, std::shared_ptr<Cell>> cells;
+    QMap<int, Cell_ptr> cells;
     const int cellsCount = d->m_gameboardQuickItem->property(CELLS_COUNT_PROPERTY_NAME).toInt();
 
     for (int i = 0; i < cellsCount; ++i) {
@@ -116,3 +120,5 @@ void Gameboard::setColumns(int columns)
 
     d->m_gameboardQuickItem->setProperty(COLUMNS_PROPERTY_NAME, columns);
 }
+
+} // namespace Game

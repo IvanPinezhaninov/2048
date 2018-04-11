@@ -27,17 +27,32 @@
 
 #include <memory>
 
-class GamePrivate;
 
+namespace Game {
+
+class GamePrivate;
 
 class Game final : public QObject
 {
     Q_OBJECT
 public:
+    enum MoveDirection : quint8 {
+        MoveLeft,
+        MoveRight,
+        MoveUp,
+        MoveDown
+    };
+
     explicit Game(QObject *parent = nullptr);
     ~Game();
 
     bool launch();
+
+public slots:
+    void startNewGame();
+    void startNewGame(int rows, int columns);
+    void moveTiles(MoveDirection direction);
+    void shutdown();
 
 protected:
     bool eventFilter(QObject *object, QEvent *event) override;
@@ -55,5 +70,7 @@ private:
 
     friend class GamePrivate;
 };
+
+} // namespace Game
 
 #endif // GAME_H

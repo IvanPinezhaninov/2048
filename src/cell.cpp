@@ -26,6 +26,8 @@
 #include <QQuickItem>
 
 
+namespace Game {
+
 Cell::Cell(QQuickItem *cellQuickItem, QObject *parent) :
     QObject(parent),
     m_cellQuickItem(cellQuickItem)
@@ -41,6 +43,12 @@ Cell::Cell(QQuickItem *cellQuickItem, QObject *parent) :
 
 Cell::~Cell()
 {
+}
+
+
+Tile_ptr Cell::tile() const
+{
+    return m_tile.lock();
 }
 
 
@@ -68,20 +76,18 @@ qreal Cell::height() const
 }
 
 
-std::shared_ptr<Tile> Cell::tile() const
-{
-    return m_tile.lock();
-}
-
-
-void Cell::setTile(const std::shared_ptr<Tile> &tile)
+void Cell::setTile(const Tile_ptr &tile)
 {
     Q_ASSERT(m_cellQuickItem != nullptr);
 
     m_tile = tile;
 
-    if (auto tile = m_tile.lock()) {
-        tile->move({ x(), y(), width(), height() });
+    if (const auto &tile = m_tile.lock()) {
+        const auto &cell = shared_from_this();
+        if (tile->cell() != cell) {
+            tile->setCell(cell);
+            tile->move({ x(), y(), width(), height() });
+        }
     }
 }
 
@@ -90,7 +96,7 @@ void Cell::onXChanged()
 {
     Q_ASSERT(m_cellQuickItem);
 
-    if (auto tile = m_tile.lock()) {
+    if (const auto &tile = m_tile.lock()) {
         tile->setX(x());
     }
 }
@@ -100,7 +106,7 @@ void Cell::onYChanged()
 {
     Q_ASSERT(m_cellQuickItem);
 
-    if (auto tile = m_tile.lock()) {
+    if (const auto &tile = m_tile.lock()) {
         tile->setY(y());
     }
 }
@@ -110,7 +116,7 @@ void Cell::onWidthChanged()
 {
     Q_ASSERT(m_cellQuickItem);
 
-    if (auto tile = m_tile.lock()) {
+    if (const auto &tile = m_tile.lock()) {
         tile->setWidth(width());
     }
 }
@@ -120,7 +126,9 @@ void Cell::onHeightChanged()
 {
     Q_ASSERT(m_cellQuickItem);
 
-    if (auto tile = m_tile.lock()) {
+    if (const auto &tile = m_tile.lock()) {
         tile->setHeight(height());
     }
 }
+
+} // namespace Game

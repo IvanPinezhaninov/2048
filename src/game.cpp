@@ -25,7 +25,6 @@
 #include "gameboard.h"
 #include "tile.h"
 
-#include <QDebug>
 #include <QGuiApplication>
 #include <QKeyEvent>
 #include <QQmlApplicationEngine>
@@ -36,6 +35,7 @@
 #include <QSettings>
 
 #include <algorithm>
+#include <cmath>
 #include <random>
 
 static const char *const MAIN_WINDOW_FILE_PATH = "qrc:/qml/MainWindow.qml";
@@ -61,12 +61,14 @@ static const char *const WINDOW_WIDTH_SETTING_KEY_NAME = "width";
 static const char *const WINDOW_HEIGHT_SETTING_KEY_NAME = "height";
 static const char *const BEST_SCORE_SETTING_KEY_NAME = "bestScore";
 
-static const int DEFAULT_GAMEBOARD_WIDTH = 4;
-static const int DEFAULT_GAMEBOARD_HEIGHT = 4;
+static const int DEFAULT_GAMEBOARD_ROWS = 4;
+static const int DEFAULT_GAMEBOARD_COLUMNS = 4;
 static const int START_TILES_COUNT = 2;
 
 static const int WINNING_VALUE = 2048;
 
+
+namespace Game {
 
 class GamePrivate final
 {
@@ -78,39 +80,27 @@ public:
         Continue
     };
 
-    enum MoveDirection : quint8 {
-      MoveLeft,
-      MoveRight,
-      MoveUp,
-      MoveDown
-    };
-
     explicit GamePrivate(Game *parent);
-    ~GamePrivate();
 
     void updateCells();
     void setGameboardSize(int rows, int columns);
     void clearTiles();
     void setGameState(GameState state);
-    void startGame();
-    void startGame(int rows, int columns);
     void continueGame();
     void createStartTiles();
     void createTile(int cellIndex, int value);
     void createRandomTile();
     void setMoveKeysBlocked(bool blocked);
-    void move(MoveDirection direction);
-    void moveTile(const std::shared_ptr<Cell> &sourceCell, const std::shared_ptr<Cell> &targetCell);
+    void moveTile(const Cell_ptr &sourceCell, const Cell_ptr &targetCell);
     void addScore(int value);
     void setScore(int value);
     void setBestScore(int value);
     int bestScore() const;
-    void setOrphaned(const std::shared_ptr<Tile> &tile);
+    void setOrphaned(const Tile_ptr &tile);
     bool isDefeat() const;
     void readSettings();
     void saveSettings();
     qreal random();
-
 
     Game *const q;
 
@@ -125,10 +115,10 @@ public:
     std::uniform_real_distribution<> m_randomDistribution;
 
     std::unique_ptr<Gameboard> m_gameboard;
-    QMap<int, std::shared_ptr<Cell>> m_cells;
-    QList<std::shared_ptr<Tile>> m_tiles;
-    QList<std::shared_ptr<Tile>> m_aboutToOrphanedTiles;
-    QList<std::shared_ptr<Tile>> m_orphanedTiles;
+    QMap<int, Cell_ptr> m_cells;
+    QList<Tile_ptr> m_tiles;
+    QList<Tile_ptr> m_aboutToOrphanedTiles;
+    QList<Tile_ptr> m_orphanedTiles;
     int m_movingTilesCount;
     bool m_isMoveKeysBlocked;
     bool m_won;
@@ -145,16 +135,10 @@ GamePrivate::GamePrivate(Game *parent) :
     m_randomEngine(std::random_device()()),
     m_randomDistribution(0.0, 1.0),
     m_movingTilesCount(0),
-    m_isMoveKeysBlocked(false),
+    m_isMoveKeysBlocked(true),
     m_won(false),
     m_gameState(Play)
 {
-}
-
-
-GamePrivate::~GamePrivate()
-{
-    saveSettings();
 }
 
 
@@ -202,24 +186,6 @@ void GamePrivate::setGameState(GamePrivate::GameState state)
 }
 
 
-void GamePrivate::startGame()
-{
-    startGame(DEFAULT_GAMEBOARD_WIDTH, DEFAULT_GAMEBOARD_HEIGHT);
-}
-
-
-void GamePrivate::startGame(int rows, int columns)
-{
-    setGameState(Play);
-    setGameboardSize(rows, columns);
-    setScore(0);
-    clearTiles();
-    updateCells();
-    createStartTiles();
-    setMoveKeysBlocked(false);
-}
-
-
 void GamePrivate::continueGame()
 {
     setGameState(GamePrivate::Continue);
@@ -238,7 +204,7 @@ void GamePrivate::createStartTiles()
 
 void GamePrivate::createTile(int cellIndex, int value)
 {
-    std::shared_ptr<Tile> tile;
+    Tile_ptr tile;
 
     if (m_orphanedTiles.empty()) {
         tile = std::make_shared<Tile>(m_tileQmlComponent.get(), q_check_ptr(m_gameboard->tilesParent()));
@@ -249,7 +215,7 @@ void GamePrivate::createTile(int cellIndex, int value)
 
     m_tiles.append(tile);
 
-    auto cell = m_cells.value(cellIndex);
+    const auto &cell = m_cells.value(cellIndex);
     cell->setTile(tile);
     tile->setValue(value);
 }
@@ -260,7 +226,7 @@ void GamePrivate::createRandomTile()
     QList<int> indexes;
 
     for (int index : m_cells.keys()) {
-        auto cell = m_cells.value(index);
+        const auto &cell = m_cells.value(index);
         if (!cell->tile()) {
             indexes.append(index);
         }
@@ -279,144 +245,9 @@ void GamePrivate::setMoveKeysBlocked(bool blocked)
 }
 
 
-void GamePrivate::move(GamePrivate::MoveDirection direction)
+void GamePrivate::moveTile(const Cell_ptr &sourceCell, const Cell_ptr &targetCell)
 {
-    int rows = 0;
-    int columns = 0;
-
-    switch (direction) {
-    case MoveLeft:
-    case MoveRight:
-        rows = m_gameboard->rows();
-        columns = m_gameboard->columns();
-        break;
-    case MoveUp:
-    case MoveDown:
-        rows = m_gameboard->columns();
-        columns = m_gameboard->rows();
-        break;
-    }
-
-    for (int row = 0; row < rows; ++row) {
-        int firstCellIndex = 0;
-        int neighborCellsIndexDelta = 0;
-
-        switch (direction) {
-        case MoveLeft:
-            firstCellIndex = row * columns;
-            neighborCellsIndexDelta = 1;
-            break;
-        case MoveRight:
-            firstCellIndex = row * columns + columns - 1;
-            neighborCellsIndexDelta = 1;
-            break;
-        case MoveUp:
-            firstCellIndex = row;
-            neighborCellsIndexDelta = rows;
-            break;
-        case MoveDown:
-            firstCellIndex = columns * (rows - 1) + row;
-            neighborCellsIndexDelta = rows;
-            break;
-        }
-
-        int previousCellindex = firstCellIndex;
-
-        for (int column = 1; column < columns; ++column) {
-            int cellIndex = 0;
-            switch (direction) {
-            case MoveLeft:
-                cellIndex = firstCellIndex + column;
-                break;
-            case MoveRight:
-                cellIndex = firstCellIndex - column;
-                break;
-            case MoveUp:
-                cellIndex = column * rows + row;
-                break;
-            case MoveDown:
-                cellIndex = columns * (rows - 1) - column * rows + row;
-                break;
-            }
-
-            auto cell = m_cells.value(cellIndex);
-
-            if (!cell->tile()) {
-                continue;
-            }
-
-            auto previousCell = m_cells.value(previousCellindex);
-            if (!previousCell->tile()) {
-                auto tile = cell->tile();
-                tile->setZ(0);
-                moveTile(cell, previousCell);
-                continue;
-            }
-
-            if (previousCell->tile()->value() == cell->tile()->value()) {
-                auto tile = cell->tile();
-                tile->setValue(tile->value() * 2);
-                tile->setZ(previousCell->tile()->z() + 1);
-                m_aboutToOrphanedTiles.append(previousCell->tile());
-                m_tiles.removeOne(previousCell->tile());
-                moveTile(cell, previousCell);
-                switch (direction) {
-                case MoveLeft:
-                    ++previousCellindex;
-                    break;
-                case MoveRight:
-                    --previousCellindex;
-                    break;
-                case MoveUp:
-                    previousCellindex += rows;
-                    break;
-                case MoveDown:
-                    previousCellindex -= rows;
-                    break;
-                }
-                continue;
-            }
-
-            int cellsIndexDelta = 0;
-            switch (direction) {
-            case MoveLeft:
-            case MoveUp:
-                cellsIndexDelta = cellIndex - previousCellindex;
-                break;
-            case MoveRight:
-            case MoveDown:
-                cellsIndexDelta = previousCellindex - cellIndex;
-                break;
-            }
-
-            if (neighborCellsIndexDelta != cellsIndexDelta) {
-                switch (direction) {
-                case MoveLeft:
-                case MoveUp:
-                    previousCellindex += neighborCellsIndexDelta;
-                    break;
-                case MoveRight:
-                case MoveDown:
-                    previousCellindex -= neighborCellsIndexDelta;
-                    break;
-                }
-                previousCell = m_cells.value(previousCellindex);
-                cell->tile()->setZ(0);
-                moveTile(cell, previousCell);
-                continue;
-            }
-
-            previousCellindex = cellIndex;
-        }
-    }
-
-    setMoveKeysBlocked(0 != m_movingTilesCount);
-}
-
-
-void GamePrivate::moveTile(const std::shared_ptr<Cell> &sourceCell, const std::shared_ptr<Cell> &targetCell)
-{
-    auto tile = sourceCell->tile();
+    const auto &tile = sourceCell->tile();
     sourceCell->setTile(nullptr);
     targetCell->setTile(tile);
     ++m_movingTilesCount;
@@ -449,7 +280,7 @@ int GamePrivate::bestScore() const
 }
 
 
-void GamePrivate::setOrphaned(const std::shared_ptr<Tile> &tile)
+void GamePrivate::setOrphaned(const Tile_ptr &tile)
 {
     if (!m_orphanedTiles.contains(tile)) {
         tile->resetValue();
@@ -470,7 +301,7 @@ bool GamePrivate::isDefeat() const
     const int latestRow = rows - 1;
     const int latestColumn = columns - 1;
 
-    std::shared_ptr<Cell> cell;
+    Cell_ptr cell;
 
     for (int row = 0; row < rows; ++row) {
         for (int column = 0; column < columns; ++column) {
@@ -566,6 +397,165 @@ bool Game::launch()
 }
 
 
+void Game::startNewGame()
+{
+    startNewGame(DEFAULT_GAMEBOARD_ROWS, DEFAULT_GAMEBOARD_COLUMNS);
+}
+
+
+void Game::startNewGame(int rows, int columns)
+{
+    d->setGameState(GamePrivate::Play);
+    d->setGameboardSize(rows, columns);
+    d->setScore(0);
+    d->clearTiles();
+    d->updateCells();
+    d->createStartTiles();
+    d->setMoveKeysBlocked(false);
+}
+
+
+void Game::moveTiles(Game::MoveDirection direction)
+{
+    int rows = 0;
+    int columns = 0;
+
+    switch (direction) {
+    case MoveLeft:
+    case MoveRight:
+        rows = d->m_gameboard->rows();
+        columns = d->m_gameboard->columns();
+        break;
+    case MoveUp:
+    case MoveDown:
+        rows = d->m_gameboard->columns();
+        columns = d->m_gameboard->rows();
+        break;
+    }
+
+    for (int row = 0; row < rows; ++row) {
+        int firstCellIndex = 0;
+        int neighborCellsIndexDelta = 0;
+
+        switch (direction) {
+        case MoveLeft:
+            firstCellIndex = row * columns;
+            neighborCellsIndexDelta = 1;
+            break;
+        case MoveRight:
+            firstCellIndex = row * columns + columns - 1;
+            neighborCellsIndexDelta = 1;
+            break;
+        case MoveUp:
+            firstCellIndex = row;
+            neighborCellsIndexDelta = rows;
+            break;
+        case MoveDown:
+            firstCellIndex = columns * (rows - 1) + row;
+            neighborCellsIndexDelta = rows;
+            break;
+        }
+
+        int previousCellindex = firstCellIndex;
+
+        for (int column = 1; column < columns; ++column) {
+            int cellIndex = 0;
+            switch (direction) {
+            case MoveLeft:
+                cellIndex = firstCellIndex + column;
+                break;
+            case MoveRight:
+                cellIndex = firstCellIndex - column;
+                break;
+            case MoveUp:
+                cellIndex = column * rows + row;
+                break;
+            case MoveDown:
+                cellIndex = columns * (rows - 1) - column * rows + row;
+                break;
+            }
+
+            const auto &cell = d->m_cells.value(cellIndex);
+
+            if (!cell->tile()) {
+                continue;
+            }
+
+            auto previousCell = d->m_cells.value(previousCellindex);
+            if (!previousCell->tile()) {
+                const auto &tile = cell->tile();
+                tile->setZ(0);
+                d->moveTile(cell, previousCell);
+                continue;
+            }
+
+            if (previousCell->tile()->value() == cell->tile()->value()) {
+                const auto &tile = cell->tile();
+                tile->setValue(tile->value() * 2);
+                tile->setZ(previousCell->tile()->z() + 1);
+                d->m_aboutToOrphanedTiles.append(previousCell->tile());
+                d->m_tiles.removeOne(previousCell->tile());
+                d->moveTile(cell, previousCell);
+                switch (direction) {
+                case MoveLeft:
+                    ++previousCellindex;
+                    break;
+                case MoveRight:
+                    --previousCellindex;
+                    break;
+                case MoveUp:
+                    previousCellindex += rows;
+                    break;
+                case MoveDown:
+                    previousCellindex -= rows;
+                    break;
+                }
+                continue;
+            }
+
+            int cellsIndexDelta = 0;
+            switch (direction) {
+            case MoveLeft:
+            case MoveUp:
+                cellsIndexDelta = cellIndex - previousCellindex;
+                break;
+            case MoveRight:
+            case MoveDown:
+                cellsIndexDelta = previousCellindex - cellIndex;
+                break;
+            }
+
+            if (neighborCellsIndexDelta != cellsIndexDelta) {
+                switch (direction) {
+                case MoveLeft:
+                case MoveUp:
+                    previousCellindex += neighborCellsIndexDelta;
+                    break;
+                case MoveRight:
+                case MoveDown:
+                    previousCellindex -= neighborCellsIndexDelta;
+                    break;
+                }
+                previousCell = d->m_cells.value(previousCellindex);
+                cell->tile()->setZ(0);
+                d->moveTile(cell, previousCell);
+                continue;
+            }
+
+            previousCellindex = cellIndex;
+        }
+    }
+
+    d->setMoveKeysBlocked(0 != d->m_movingTilesCount);
+}
+
+
+void Game::shutdown()
+{
+    d->saveSettings();
+}
+
+
 bool Game::eventFilter(QObject *object, QEvent *event)
 {
     if (QEvent::KeyPress == event->type()) {
@@ -577,7 +567,7 @@ bool Game::eventFilter(QObject *object, QEvent *event)
                     d->continueGame();
                     return true;
                 case GamePrivate::Defeat:
-                    d->startGame();
+                    startNewGame();
                     return true;
                 default:
                     break;
@@ -586,16 +576,16 @@ bool Game::eventFilter(QObject *object, QEvent *event)
         } else {
             switch (keyEvent->key()) {
             case Qt::Key_Left:
-                d->move(GamePrivate::MoveLeft);
+                moveTiles(MoveLeft);
                 return true;
             case Qt::Key_Right:
-                d->move(GamePrivate::MoveRight);
+                moveTiles(MoveRight);
                 return true;
             case Qt::Key_Up:
-                d->move(GamePrivate::MoveUp);
+                moveTiles(MoveUp);
                 return true;
             case Qt::Key_Down:
-                d->move(GamePrivate::MoveDown);
+                moveTiles(MoveDown);
                 return true;
             default:
                 break;
@@ -621,7 +611,7 @@ void Game::onRootObjectCreated(QObject *object, const QUrl &url)
     d->m_gameboard = std::make_unique<Gameboard>(gameboardQuickItem);
 
     d->readSettings();
-    d->startGame();
+    startNewGame();
 }
 
 
@@ -633,7 +623,7 @@ void Game::onContinueGameRequested()
 
 void Game::onRestartGameRequested()
 {
-    d->startGame();
+    startNewGame();
 }
 
 
@@ -672,3 +662,5 @@ void Game::onTileMoveFinished()
         }
     }
 }
+
+} // namespace Game

@@ -31,8 +31,13 @@ QT_BEGIN_NAMESPACE
 class QQuickItem;
 QT_END_NAMESPACE
 
+
+namespace Game {
+
 class Cell;
 class GameboardPrivate;
+
+using Cell_ptr = std::shared_ptr<Cell>;
 
 class Gameboard final : public QObject
 {
@@ -46,7 +51,7 @@ public:
     int rows() const;
     int columns() const;
 
-    QMap<int, std::shared_ptr<Cell>> cells() const;
+    QMap<int, Cell_ptr> cells() const;
 
 public slots:
     void setRows(int rows);
@@ -56,6 +61,10 @@ private:
     Q_DISABLE_COPY(Gameboard)
 
     const std::unique_ptr<GameboardPrivate> d;
+
+    friend class GameboardPrivate;
 };
+
+} // namespace Game
 
 #endif // GAMEBOARD_H
