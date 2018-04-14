@@ -130,7 +130,12 @@ GamePrivate::GamePrivate(Game *parent) :
     q(parent),
     m_qmlEngine(std::make_unique<QQmlApplicationEngine>(parent)),
     m_tileQmlComponent(std::make_unique<QQmlComponent>(m_qmlEngine.get(), QUrl(QLatin1Literal(TILE_FILE_PATH)))),
+#ifdef Q_OS_MACOS
+    m_settings(std::make_unique<QSettings>(QString(QLatin1Literal("%1/../Resources/settings.ini"))
+                                           .arg(QCoreApplication::applicationDirPath()), QSettings::IniFormat)),
+#else
     m_settings(std::make_unique<QSettings>()),
+#endif
     m_gameQuickItem(nullptr),
     m_randomEngine(std::random_device()()),
     m_randomDistribution(0.0, 1.0),
