@@ -33,6 +33,7 @@ QT_END_NAMESPACE
 
 
 namespace Game {
+namespace Internal {
 
 class Cell;
 class GameboardPrivate;
@@ -65,6 +66,7 @@ private:
     friend class GameboardPrivate;
 };
 
+} // namespace Internal
 } // namespace Game
 
 #endif // GAMEBOARD_H

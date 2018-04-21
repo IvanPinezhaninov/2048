@@ -33,6 +33,7 @@ class QQuickItem;
 QT_END_NAMESPACE
 
 namespace Game {
+namespace Internal {
 
 class Cell;
 
@@ -42,11 +43,18 @@ class Tile final : public QObject, public std::enable_shared_from_this<Tile>
 {
     Q_OBJECT
 public:
-    explicit Tile(QQmlComponent *tileQmlComponent, QQuickItem *parent);
+    explicit Tile(int id, QQmlComponent *tileQmlComponent, QQuickItem *parent);
     ~Tile();
 
+    int id() const;
+    void setId(int id);
+
     int value() const;
+    void setValue(int value);
+    void resetValue();
+
     Cell_ptr cell() const;
+    void setCell(const Cell_ptr &cell);
 
     qreal x() const;
     qreal y() const;
@@ -58,10 +66,6 @@ signals:
     void moveFinished();
 
 public slots:
-    void setValue(int value);
-    void resetValue();
-
-    void setCell(const Cell_ptr &cell);
     void move(const QRectF &location);
 
     void setX(qreal x);
@@ -77,10 +81,12 @@ private:
     Q_DISABLE_COPY(Tile)
 
     const std::unique_ptr<QQuickItem> m_tileQuickItem;
+    int m_id;
     int m_value;
     std::weak_ptr<Cell> m_cell;
 };
 
+} // namespace Internal
 } // namespace Game
 
 #endif // TILE_H

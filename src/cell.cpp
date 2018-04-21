@@ -27,9 +27,11 @@
 
 
 namespace Game {
+namespace Internal {
 
-Cell::Cell(QQuickItem *cellQuickItem, QObject *parent) :
+Cell::Cell(int index, QQuickItem *cellQuickItem, QObject *parent) :
     QObject(parent),
+    m_index(index),
     m_cellQuickItem(cellQuickItem)
 {
     Q_ASSERT(m_cellQuickItem != nullptr);
@@ -43,6 +45,12 @@ Cell::Cell(QQuickItem *cellQuickItem, QObject *parent) :
 
 Cell::~Cell()
 {
+}
+
+
+int Cell::index() const
+{
+    return m_index;
 }
 
 
@@ -131,4 +139,5 @@ void Cell::onHeightChanged()
     }
 }
 
+} // namespace Internal
 } // namespace Game

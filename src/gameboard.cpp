@@ -35,6 +35,7 @@ static const char *const GET_CELL_FUNCTION_NAME = "getCell";
 
 
 namespace Game {
+namespace Internal {
 
 class GameboardPrivate
 {
@@ -99,7 +100,7 @@ QMap<int, Cell_ptr> Gameboard::cells() const
         QMetaObject::invokeMethod(d->m_gameboardQuickItem, GET_CELL_FUNCTION_NAME,
                                   Q_RETURN_ARG(QVariant, returnValue), Q_ARG(QVariant, i));
         QQuickItem *cellQuickItem = q_check_ptr(returnValue.value<QQuickItem*>());
-        cells.insert(i, std::make_shared<Cell>(cellQuickItem));
+        cells.insert(i, std::make_shared<Cell>(i, cellQuickItem));
     }
 
     return cells;
@@ -121,4 +122,5 @@ void Gameboard::setColumns(int columns)
     d->m_gameboardQuickItem->setProperty(COLUMNS_PROPERTY_NAME, columns);
 }
 
+} // namespace Internal
 } // namespace Game

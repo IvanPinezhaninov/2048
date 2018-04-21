@@ -35,10 +35,12 @@ static const char *const VALUE_PROPERTY_NAME = "value";
 
 
 namespace Game {
+namespace Internal {
 
-Tile::Tile(QQmlComponent *tileQmlComponent, QQuickItem *parent) :
+Tile::Tile(int id, QQmlComponent *tileQmlComponent, QQuickItem *parent) :
     QObject(parent),
     m_tileQuickItem(qobject_cast<QQuickItem*>(tileQmlComponent->create())),
+    m_id(id),
     m_value(0)
 {
     m_tileQuickItem->setParentItem(parent);
@@ -51,15 +53,58 @@ Tile::~Tile()
 }
 
 
+int Tile::id() const
+{
+    return m_id;
+}
+
+
+void Tile::setId(int id)
+{
+    m_id = id;
+}
+
+
 int Tile::value() const
 {
     return m_value;
 }
 
 
+void Tile::setValue(int value)
+{
+    if (0 == m_value) {
+        m_tileQuickItem->setProperty(VALUE_PROPERTY_NAME, value);
+    }
+
+    m_value = value;
+}
+
+
+void Tile::resetValue()
+{
+    m_value = 0;
+    m_tileQuickItem->setProperty(VALUE_PROPERTY_NAME, 0);
+}
+
+
 Cell_ptr Tile::cell() const
 {
     return m_cell.lock();
+}
+
+
+void Tile::setCell(const Cell_ptr &cell)
+{
+    m_cell = cell;
+
+    if (const auto &cell = m_cell.lock()) {
+        const auto &tile = shared_from_this();
+        if (cell->tile() != tile) {
+            cell->setTile(tile);
+            move({ cell->x(), cell->y(), cell->width(), cell->height() });
+        }
+    }
 }
 
 
@@ -90,37 +135,6 @@ qreal Tile::width() const
 qreal Tile::height() const
 {
     return m_tileQuickItem->height();
-}
-
-
-void Tile::setValue(int value)
-{
-    if (0 == m_value) {
-        m_tileQuickItem->setProperty(VALUE_PROPERTY_NAME, value);
-    }
-
-    m_value = value;
-}
-
-
-void Tile::resetValue()
-{
-    m_value = 0;
-    m_tileQuickItem->setProperty(VALUE_PROPERTY_NAME, 0);
-}
-
-
-void Tile::setCell(const Cell_ptr &cell)
-{
-    m_cell = cell;
-
-    if (const auto &cell = m_cell.lock()) {
-        const auto &tile = shared_from_this();
-        if (cell->tile() != tile) {
-            cell->setTile(tile);
-            move({ cell->x(), cell->y(), cell->width(), cell->height() });
-        }
-    }
 }
 
 
@@ -180,4 +194,5 @@ void Tile::onMoveFinished()
     emit moveFinished();
 }
 
+} // namespace Internal
 } // namespace Game

@@ -20,26 +20,39 @@
 ***************************************************************************/
 
 
-#include "gamecontroller.h"
+#ifndef GAMECONTROLLER_H
+#define GAMECONTROLLER_H
 
-#include <QGuiApplication>
+#include <QObject>
 
-int main(int argc, char *argv[])
+#include <memory>
+
+
+namespace Game {
+namespace Internal {
+class GameControllerPrivate;
+} // namespace Internal
+
+class GameController final : public QObject
 {
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 6, 0))
-    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-#endif
+    Q_OBJECT
+public:
+    explicit GameController(QObject *parent = nullptr);
+    ~GameController();
 
-    QGuiApplication app(argc, argv);
-    app.setOrganizationName(QLatin1Literal(ORGANIZATION_NAME));
-    app.setApplicationName(QLatin1Literal(APPLICATION_NAME));
+    bool start();
 
-    Game::GameController gameController;
-    QObject::connect(&app, &QGuiApplication::lastWindowClosed, &gameController, &Game::GameController::shutdown);
+public slots:
+    void shutdown();
 
-    if (!gameController.start()) {
-        return EXIT_FAILURE;
-    }
+private:
+    Q_DISABLE_COPY(GameController)
 
-    return app.exec();
-}
+    const std::unique_ptr<Internal::GameControllerPrivate> d;
+
+    friend class Internal::GameControllerPrivate;
+};
+
+} // namespace Game
+
+#endif // GAMECONTROLLER_H

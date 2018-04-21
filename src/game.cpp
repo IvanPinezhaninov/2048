@@ -25,14 +25,11 @@
 #include "gameboard.h"
 #include "tile.h"
 
-#include <QGuiApplication>
 #include <QKeyEvent>
 #include <QQmlApplicationEngine>
 #include <QQmlComponent>
 #include <QQuickItem>
 #include <QQuickWindow>
-#include <QScreen>
-#include <QSettings>
 
 #include <algorithm>
 #include <cmath>
@@ -55,12 +52,6 @@ static const char *const BEST_SCORE_PROPERTY_NAME = "bestScore";
 
 static const char *const ADD_SCORE_FUNCTION_NAME = "addScore";
 
-static const char *const WINDOW_X_SETTING_KEY_NAME = "x";
-static const char *const WINDOW_Y_SETTING_KEY_NAME = "y";
-static const char *const WINDOW_WIDTH_SETTING_KEY_NAME = "width";
-static const char *const WINDOW_HEIGHT_SETTING_KEY_NAME = "height";
-static const char *const BEST_SCORE_SETTING_KEY_NAME = "bestScore";
-
 static const int DEFAULT_GAMEBOARD_ROWS = 4;
 static const int DEFAULT_GAMEBOARD_COLUMNS = 4;
 static const int START_TILES_COUNT = 2;
@@ -69,6 +60,7 @@ static const int WINNING_VALUE = 2048;
 
 
 namespace Game {
+namespace Internal {
 
 class GamePrivate final
 {
@@ -98,15 +90,13 @@ public:
     int bestScore() const;
     void setOrphaned(const Tile_ptr &tile);
     bool isDefeat() const;
-    void readSettings();
-    void saveSettings();
     qreal random();
+    int nextTileId();
 
     Game *const q;
 
     const std::unique_ptr<QQmlApplicationEngine> m_qmlEngine;
     const std::unique_ptr<QQmlComponent> m_tileQmlComponent;
-    const std::unique_ptr<QSettings> m_settings;
 
     QQuickWindow *m_windowQuickItem;
     QQuickItem *m_gameQuickItem;
@@ -123,6 +113,7 @@ public:
     bool m_isMoveKeysBlocked;
     bool m_won;
     GameState m_gameState;
+    int m_tileId;
 };
 
 
@@ -130,19 +121,14 @@ GamePrivate::GamePrivate(Game *parent) :
     q(parent),
     m_qmlEngine(std::make_unique<QQmlApplicationEngine>(parent)),
     m_tileQmlComponent(std::make_unique<QQmlComponent>(m_qmlEngine.get(), QUrl(QLatin1Literal(TILE_FILE_PATH)))),
-#ifdef Q_OS_MACOS
-    m_settings(std::make_unique<QSettings>(QString(QLatin1Literal("%1/../Resources/settings.ini"))
-                                           .arg(QCoreApplication::applicationDirPath()), QSettings::IniFormat)),
-#else
-    m_settings(std::make_unique<QSettings>()),
-#endif
     m_gameQuickItem(nullptr),
     m_randomEngine(std::random_device()()),
     m_randomDistribution(0.0, 1.0),
     m_movingTilesCount(0),
     m_isMoveKeysBlocked(true),
     m_won(false),
-    m_gameState(Play)
+    m_gameState(Play),
+    m_tileId(0)
 {
 }
 
@@ -210,12 +196,14 @@ void GamePrivate::createStartTiles()
 void GamePrivate::createTile(int cellIndex, int value)
 {
     Tile_ptr tile;
+    const int id = nextTileId();
 
     if (m_orphanedTiles.empty()) {
-        tile = std::make_shared<Tile>(m_tileQmlComponent.get(), q_check_ptr(m_gameboard->tilesParent()));
+        tile = std::make_shared<Tile>(id, m_tileQmlComponent.get(), q_check_ptr(m_gameboard->tilesParent()));
         QObject::connect(tile.get(), &Tile::moveFinished, q, &Game::onTileMoveFinished);
     } else {
         tile = m_orphanedTiles.takeLast();
+        tile->setId(id);
     }
 
     m_tiles.append(tile);
@@ -339,42 +327,15 @@ bool GamePrivate::isDefeat() const
 }
 
 
-void GamePrivate::readSettings()
-{
-    Q_ASSERT(m_windowQuickItem);
-
-    setBestScore(m_settings->value(QLatin1Literal(BEST_SCORE_SETTING_KEY_NAME)).toInt());
-
-    if (!m_settings->contains(QLatin1Literal(WINDOW_X_SETTING_KEY_NAME))) {
-        QRect geometry = m_windowQuickItem->geometry();
-        const QPoint &centerOfScreen = QGuiApplication::primaryScreen()->availableGeometry().center();
-        geometry.moveCenter(centerOfScreen);
-        m_windowQuickItem->setGeometry(geometry);
-        m_windowQuickItem->setVisibility(QWindow::AutomaticVisibility);
-        return;
-    }
-
-    m_windowQuickItem->setX(m_settings->value(QLatin1Literal(WINDOW_X_SETTING_KEY_NAME)).toInt());
-    m_windowQuickItem->setY(m_settings->value(QLatin1Literal(WINDOW_Y_SETTING_KEY_NAME)).toInt());
-    m_windowQuickItem->setWidth(m_settings->value(QLatin1Literal(WINDOW_WIDTH_SETTING_KEY_NAME)).toInt());
-    m_windowQuickItem->setHeight(m_settings->value(QLatin1Literal(WINDOW_HEIGHT_SETTING_KEY_NAME)).toInt());
-    m_windowQuickItem->setVisibility(QWindow::AutomaticVisibility);
-}
-
-
-void GamePrivate::saveSettings()
-{
-    m_settings->setValue(QLatin1Literal(BEST_SCORE_SETTING_KEY_NAME), bestScore());
-    m_settings->setValue(QLatin1Literal(WINDOW_X_SETTING_KEY_NAME), m_windowQuickItem->x());
-    m_settings->setValue(QLatin1Literal(WINDOW_Y_SETTING_KEY_NAME), m_windowQuickItem->y());
-    m_settings->setValue(QLatin1Literal(WINDOW_WIDTH_SETTING_KEY_NAME), m_windowQuickItem->width());
-    m_settings->setValue(QLatin1Literal(WINDOW_HEIGHT_SETTING_KEY_NAME), m_windowQuickItem->height());
-}
-
-
 qreal GamePrivate::random()
 {
     return m_randomDistribution(m_randomEngine);
+}
+
+
+int GamePrivate::nextTileId()
+{
+    return ++m_tileId;
 }
 
 
@@ -391,7 +352,7 @@ Game::~Game()
 }
 
 
-bool Game::launch()
+bool Game::init()
 {
     d->m_qmlEngine->load(QUrl(QLatin1Literal(MAIN_WINDOW_FILE_PATH)));
     if (d->m_qmlEngine->rootObjects().isEmpty()) {
@@ -399,6 +360,150 @@ bool Game::launch()
     }
 
     return true;
+}
+
+
+void Game::setGeometry(const QRect &rect)
+{
+    Q_ASSERT(d->m_windowQuickItem);
+
+    d->m_windowQuickItem->setGeometry(rect);
+}
+
+
+void Game::setGeometry(int x, int y, int w, int h)
+{
+    Q_ASSERT(d->m_windowQuickItem);
+
+    d->m_windowQuickItem->setGeometry(x, y, w, h);
+}
+
+
+QRect Game::geometry() const
+{
+    Q_ASSERT(d->m_windowQuickItem);
+
+    return d->m_windowQuickItem->geometry();
+}
+
+
+bool Game::isVisible() const
+{
+    Q_ASSERT(d->m_windowQuickItem);
+
+    return d->m_windowQuickItem->isVisible();
+}
+
+
+Qt::WindowState Game::windowState() const
+{
+    Q_ASSERT(d->m_windowQuickItem);
+
+    return d->m_windowQuickItem->windowState();
+}
+
+
+Qt::WindowStates Game::windowStates() const
+{
+    Q_ASSERT(d->m_windowQuickItem);
+
+    return d->m_windowQuickItem->windowStates();
+}
+
+
+void Game::setScore(int score)
+{
+    Q_ASSERT(d->m_gameQuickItem);
+
+    d->m_gameQuickItem->setProperty(SCORE_PROPERTY_NAME, score);
+
+}
+
+
+int Game::score() const
+{
+    Q_ASSERT(d->m_gameQuickItem);
+
+    return d->m_gameQuickItem->property(SCORE_PROPERTY_NAME).toInt();
+}
+
+
+void Game::setBestScore(int score)
+{
+    Q_ASSERT(d->m_gameQuickItem);
+
+    d->m_gameQuickItem->setProperty(BEST_SCORE_PROPERTY_NAME, score);
+}
+
+
+int Game::bestScore() const
+{
+    Q_ASSERT(d->m_gameQuickItem);
+
+    return d->m_gameQuickItem->property(BEST_SCORE_PROPERTY_NAME).toInt();
+}
+
+
+void Game::showFullScreen()
+{
+    Q_ASSERT(d->m_windowQuickItem);
+
+    d->m_windowQuickItem->showFullScreen();
+}
+
+
+void Game::showMaximized()
+{
+    Q_ASSERT(d->m_windowQuickItem);
+
+    d->m_windowQuickItem->showMaximized();
+}
+
+
+void Game::showMinimized()
+{
+    Q_ASSERT(d->m_windowQuickItem);
+
+    d->m_windowQuickItem->showMinimized();
+}
+
+
+void Game::showNormal()
+{
+    Q_ASSERT(d->m_windowQuickItem);
+
+    d->m_windowQuickItem->showNormal();
+}
+
+
+void Game::show()
+{
+    Q_ASSERT(d->m_windowQuickItem);
+
+    d->m_windowQuickItem->show();
+}
+
+void Game::setVisible(bool visible)
+{
+    Q_ASSERT(d->m_windowQuickItem);
+
+    d->m_windowQuickItem->setVisible(visible);
+}
+
+
+void Game::setWindowState(Qt::WindowState state)
+{
+    Q_ASSERT(d->m_windowQuickItem);
+
+    d->m_windowQuickItem->setWindowState(state);
+}
+
+
+void Game::setWindowStates(Qt::WindowStates states)
+{
+    Q_ASSERT(d->m_windowQuickItem);
+
+    return d->m_windowQuickItem->setWindowStates(states);
 }
 
 
@@ -555,12 +660,6 @@ void Game::moveTiles(Game::MoveDirection direction)
 }
 
 
-void Game::shutdown()
-{
-    d->saveSettings();
-}
-
-
 bool Game::eventFilter(QObject *object, QEvent *event)
 {
     if (QEvent::KeyPress == event->type()) {
@@ -615,7 +714,6 @@ void Game::onRootObjectCreated(QObject *object, const QUrl &url)
     QQuickItem *gameboardQuickItem = q_check_ptr(d->m_gameQuickItem->findChild<QQuickItem*>(QLatin1Literal(GAMEBOARD_OBJECT_NAME)));
     d->m_gameboard = std::make_unique<Gameboard>(gameboardQuickItem);
 
-    d->readSettings();
     startNewGame();
 }
 
@@ -668,4 +766,5 @@ void Game::onTileMoveFinished()
     }
 }
 
+} // namespace Internal
 } // namespace Game

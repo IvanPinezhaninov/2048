@@ -29,6 +29,7 @@
 
 
 namespace Game {
+namespace Internal {
 
 class GamePrivate;
 
@@ -46,13 +47,36 @@ public:
     explicit Game(QObject *parent = nullptr);
     ~Game();
 
-    bool launch();
+    bool init();
+
+    void setGeometry(const QRect &rect);
+    void setGeometry(int x, int y, int w, int h);
+    QRect geometry() const;
+
+    bool isVisible() const;
+    Qt::WindowState windowState() const;
+    Qt::WindowStates windowStates() const;
+
+    void setScore(int score);
+    int score() const;
+
+    void setBestScore(int score);
+    int bestScore() const;
 
 public slots:
+    void showFullScreen();
+    void showMaximized();
+    void showMinimized();
+    void showNormal();
+    void show();
+
+    void setVisible(bool visible);
+    void setWindowState(Qt::WindowState state);
+    void setWindowStates(Qt::WindowStates states);
+
     void startNewGame();
     void startNewGame(int rows, int columns);
     void moveTiles(MoveDirection direction);
-    void shutdown();
 
 protected:
     bool eventFilter(QObject *object, QEvent *event) override;
@@ -71,6 +95,7 @@ private:
     friend class GamePrivate;
 };
 
+} // namespace Internal
 } // namespace Game
 
 #endif // GAME_H
