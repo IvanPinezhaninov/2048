@@ -20,60 +20,33 @@
 ***************************************************************************/
 
 
-#ifndef GAMEBOARD_H
-#define GAMEBOARD_H
-
-#include <QObject>
-
-#include <memory>
-
-QT_BEGIN_NAMESPACE
-class QQuickItem;
-QT_END_NAMESPACE
-
+#ifndef GAMEBOARDSIZE_H
+#define GAMEBOARDSIZE_H
 
 namespace Game {
 namespace Internal {
 
-class Cell;
-class GameboardSize;
-class GameboardPrivate;
-
-using Cell_ptr = std::shared_ptr<Cell>;
-
-class Gameboard final : public QObject
+class GameboardSize
 {
-    Q_OBJECT
 public:
-    explicit Gameboard(QQuickItem *gameboardQuickItem, QObject *parent = nullptr);
-    ~Gameboard();
+    GameboardSize();
+    GameboardSize(int rows, int columns);
 
-    QQuickItem *tilesParent() const;
-    GameboardSize size() const;
-    QMap<int, Cell_ptr> cells() const;
+    bool operator==(const GameboardSize &other) const;
+    bool operator!=(const GameboardSize &other) const;
 
-signals:
-    void rowsChanged(int rows);
-    void columnsChanged(int columns);
-    void sizeChanged(const GameboardSize &size);
+    void setRows(int rows);
+    int rows() const;
 
-public slots:
-    void setSize(const GameboardSize &size);
-
-private slots:
-    void onSizeChanged(const GameboardSize &size);
-    void onCellItemAdded(int index, QQuickItem *item);
-    void onCellItemRemoved(int index, QQuickItem *item);
+    void setColumns(int columns);
+    int columns() const;
 
 private:
-    Q_DISABLE_COPY(Gameboard)
-
-    const std::unique_ptr<GameboardPrivate> d;
-
-    friend class GameboardPrivate;
+    int m_rows;
+    int m_columns;
 };
 
 } // namespace Internal
 } // namespace Game
 
-#endif // GAMEBOARD_H
+#endif // GAMEBOARDSIZE_H

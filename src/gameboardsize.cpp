@@ -20,42 +20,58 @@
 ***************************************************************************/
 
 
-#ifndef GAMECONTROLLER_H
-#define GAMECONTROLLER_H
-
-#include <QObject>
-
-#include <memory>
-
+#include "gameboardsize.h"
 
 namespace Game {
 namespace Internal {
-class GameControllerPrivate;
-} // namespace Internal
 
-class GameController final : public QObject
+GameboardSize::GameboardSize() :
+    GameboardSize(0, 0)
 {
-    Q_OBJECT
-public:
-    explicit GameController(QObject *parent = nullptr);
-    ~GameController();
+}
 
-    bool start();
 
-public slots:
-    void shutdown();
+GameboardSize::GameboardSize(int rows, int columns) :
+    m_rows(rows),
+    m_columns(columns)
+{
+}
 
-private slots:
-    void onGameReady();
 
-private:
-    Q_DISABLE_COPY(GameController)
+bool GameboardSize::operator==(const GameboardSize &other) const
+{
+  return (m_rows == other.m_rows && m_columns == other.m_columns);
+}
 
-    const std::unique_ptr<Internal::GameControllerPrivate> d;
 
-    friend class Internal::GameControllerPrivate;
-};
+bool GameboardSize::operator!=(const GameboardSize &other) const
+{
+  return !operator==(other);
+}
 
+
+void GameboardSize::setRows(int rows)
+{
+    m_rows = rows;
+}
+
+
+int GameboardSize::rows() const
+{
+    return m_rows;
+}
+
+
+void GameboardSize::setColumns(int columns)
+{
+    m_columns = columns;
+}
+
+
+int GameboardSize::columns() const
+{
+    return m_columns;
+}
+
+} // namespace Internal
 } // namespace Game
-
-#endif // GAMECONTROLLER_H

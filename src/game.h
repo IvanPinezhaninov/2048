@@ -32,6 +32,7 @@ namespace Game {
 namespace Internal {
 
 class GamePrivate;
+class GameboardSize;
 
 class Game final : public QObject
 {
@@ -55,13 +56,20 @@ public:
 
     bool isVisible() const;
     Qt::WindowState windowState() const;
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
     Qt::WindowStates windowStates() const;
+#endif
 
-    void setScore(int score);
     int score() const;
-
-    void setBestScore(int score);
     int bestScore() const;
+
+    GameboardSize gameboardSize() const;
+
+signals:
+    void gameReady();
+    void scoreChanged(int score);
+    void bestScoreChanged(int score);
+    void gameboardSizeChanged(const GameboardSize &size);
 
 public slots:
     void showFullScreen();
@@ -72,10 +80,16 @@ public slots:
 
     void setVisible(bool visible);
     void setWindowState(Qt::WindowState state);
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
     void setWindowStates(Qt::WindowStates states);
+#endif
+
+    void setScore(int score);
+    void setBestScore(int score);
+
+    void setGameboardSize(const GameboardSize &size);
 
     void startNewGame();
-    void startNewGame(int rows, int columns);
     void moveTiles(MoveDirection direction);
 
 protected:
@@ -86,6 +100,8 @@ private slots:
     void onContinueGameRequested();
     void onRestartGameRequested();
     void onTileMoveFinished();
+    void onScoreChanged(int score);
+    void onBestScoreChanged(int score);
 
 private:
     Q_DISABLE_COPY(Game)

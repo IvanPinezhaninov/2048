@@ -43,7 +43,7 @@ class Tile final : public QObject, public std::enable_shared_from_this<Tile>
 {
     Q_OBJECT
 public:
-    explicit Tile(int id, QQmlComponent *tileQmlComponent, QQuickItem *parent);
+    Tile(int id, QQmlComponent *tileQmlComponent, QQuickItem *parent);
     ~Tile();
 
     int id() const;

@@ -86,8 +86,7 @@ qreal Cell::height() const
 
 void Cell::setTile(const Tile_ptr &tile)
 {
-    Q_ASSERT(m_cellQuickItem != nullptr);
-
+    const auto &oldTile = m_tile.lock();
     m_tile = tile;
 
     if (const auto &tile = m_tile.lock()) {
@@ -96,6 +95,8 @@ void Cell::setTile(const Tile_ptr &tile)
             tile->setCell(cell);
             tile->move({ x(), y(), width(), height() });
         }
+    } else if (oldTile) {
+        oldTile->setCell(nullptr);
     }
 }
 

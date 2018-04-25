@@ -21,11 +21,15 @@
 
 
 #include "game.h"
+#include "gameboardsize.h"
 #include "gamecontroller.h"
 
 #include <QGuiApplication>
 #include <QScreen>
 #include <QSettings>
+#include <QTimer>
+
+static const int START_GAME_TIMEOUT = 400;
 
 static const char *const GAME_WINDOW_X_SETTING_KEY_NAME = "x";
 static const char *const GAME_WINDOW_Y_SETTING_KEY_NAME = "y";
@@ -43,7 +47,7 @@ namespace Internal {
 class GameControllerPrivate
 {
 public:
-    GameControllerPrivate(GameController* parent);
+    GameControllerPrivate(GameController *parent);
 
     void readSettings();
     void saveSettings();
@@ -110,6 +114,7 @@ GameController::GameController(QObject *parent) :
     QObject(parent),
     d(std::make_unique<Internal::GameControllerPrivate>(this))
 {
+    connect(d->m_game.get(), &Game::Internal::Game::gameReady, this, &GameController::onGameReady);
 }
 
 
@@ -120,20 +125,21 @@ GameController::~GameController()
 
 bool GameController::start()
 {
-    if (!d->m_game->init()) {
-        return false;
-    }
-
-    d->readSettings();
-    d->m_game->show();
-
-    return true;
+    return d->m_game->init();
 }
 
 
 void GameController::shutdown()
 {
     d->saveSettings();
+}
+
+
+void GameController::onGameReady()
+{
+    d->readSettings();
+    d->m_game->show();
+    QTimer::singleShot(START_GAME_TIMEOUT, d->m_game.get(), SLOT(startNewGame()));
 }
 
 } // namespace Game

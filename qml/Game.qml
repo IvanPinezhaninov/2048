@@ -146,11 +146,4 @@ Item {
         id: loader
         anchors.fill: gameboard
     }
-
-    function addScore(value) {
-        score += value
-        if (bestScore < score) {
-            bestScore = score
-        }
-    }
 }

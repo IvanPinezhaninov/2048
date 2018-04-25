@@ -96,6 +96,7 @@ Cell_ptr Tile::cell() const
 
 void Tile::setCell(const Cell_ptr &cell)
 {
+    const auto &oldCell = m_cell.lock();
     m_cell = cell;
 
     if (const auto &cell = m_cell.lock()) {
@@ -104,6 +105,8 @@ void Tile::setCell(const Cell_ptr &cell)
             cell->setTile(tile);
             move({ cell->x(), cell->y(), cell->width(), cell->height() });
         }
+    } else if (oldCell) {
+        oldCell->setTile(nullptr);
     }
 }
 

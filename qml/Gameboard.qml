@@ -26,9 +26,8 @@ import 'qrc:/qml/Constants.js' as Constants
 Rectangle {
     id: gameboard
 
-    property int rows: 4
-    property int columns: 4
-    readonly property alias cellsCount: cellsRepeater.count
+    property int rows: 0
+    property int columns: 0
 
     objectName: 'Gameboard'
     radius: Math.min(width, height) * Constants.gameboardRadiusRatio
@@ -70,12 +69,9 @@ Rectangle {
         Repeater {
             id: cellsRepeater
 
+            objectName: 'CellsRepeater'
             model: parent.columns * parent.rows
             delegate: cell
         }
-    }
-
-    function getCell(index) {
-        return cellsRepeater.itemAt(index)
     }
 }

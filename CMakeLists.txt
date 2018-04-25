@@ -64,6 +64,7 @@ set(HEADERS
     src/cell.h
     src/tile.h
     src/gameboard.h
+    src/gameboardsize.h
     src/game.h
     src/gamecontroller.h
 )
@@ -72,6 +73,7 @@ set(SOURCES
     src/cell.cpp
     src/tile.cpp
     src/gameboard.cpp
+    src/gameboardsize.cpp
     src/game.cpp
     src/gamecontroller.cpp
     src/main.cpp

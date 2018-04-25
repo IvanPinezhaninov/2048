@@ -23,6 +23,7 @@
 #include "cell.h"
 #include "game.h"
 #include "gameboard.h"
+#include "gameboardsize.h"
 #include "tile.h"
 
 #include <QKeyEvent>
@@ -50,8 +51,6 @@ static const char *const GAME_STATE_PROPERTY_NAME = "state";
 static const char *const SCORE_PROPERTY_NAME = "score";
 static const char *const BEST_SCORE_PROPERTY_NAME = "bestScore";
 
-static const char *const ADD_SCORE_FUNCTION_NAME = "addScore";
-
 static const int DEFAULT_GAMEBOARD_ROWS = 4;
 static const int DEFAULT_GAMEBOARD_COLUMNS = 4;
 static const int START_TILES_COUNT = 2;
@@ -75,7 +74,6 @@ public:
     explicit GamePrivate(Game *parent);
 
     void updateCells();
-    void setGameboardSize(int rows, int columns);
     void clearTiles();
     void setGameState(GameState state);
     void continueGame();
@@ -84,10 +82,6 @@ public:
     void createRandomTile();
     void setMoveKeysBlocked(bool blocked);
     void moveTile(const Cell_ptr &sourceCell, const Cell_ptr &targetCell);
-    void addScore(int value);
-    void setScore(int value);
-    void setBestScore(int value);
-    int bestScore() const;
     void setOrphaned(const Tile_ptr &tile);
     bool isDefeat() const;
     qreal random();
@@ -113,7 +107,10 @@ public:
     bool m_isMoveKeysBlocked;
     bool m_won;
     GameState m_gameState;
+    GameboardSize m_gameboardSize;
     int m_tileId;
+    int m_score;
+    int m_bestScore;
 };
 
 
@@ -121,6 +118,7 @@ GamePrivate::GamePrivate(Game *parent) :
     q(parent),
     m_qmlEngine(std::make_unique<QQmlApplicationEngine>(parent)),
     m_tileQmlComponent(std::make_unique<QQmlComponent>(m_qmlEngine.get(), QUrl(QLatin1Literal(TILE_FILE_PATH)))),
+    m_windowQuickItem(nullptr),
     m_gameQuickItem(nullptr),
     m_randomEngine(std::random_device()()),
     m_randomDistribution(0.0, 1.0),
@@ -128,27 +126,28 @@ GamePrivate::GamePrivate(Game *parent) :
     m_isMoveKeysBlocked(true),
     m_won(false),
     m_gameState(Play),
-    m_tileId(0)
+    m_gameboardSize(DEFAULT_GAMEBOARD_ROWS, DEFAULT_GAMEBOARD_COLUMNS),
+    m_tileId(0),
+    m_score(0),
+    m_bestScore(0)
 {
 }
 
 
 void GamePrivate::updateCells()
 {
+    m_gameboard->setSize(m_gameboardSize);
     m_cells = m_gameboard->cells();
-}
-
-
-void GamePrivate::setGameboardSize(int rows, int columns)
-{
-    m_gameboard->setRows(rows);
-    m_gameboard->setColumns(columns);
 }
 
 
 void GamePrivate::clearTiles()
 {
-    std::for_each(m_tiles.begin(), m_tiles.end(), std::bind(&GamePrivate::setOrphaned, this, std::placeholders::_1));
+    for (const auto &tile : m_tiles) {
+        tile->resetValue();
+        tile->setCell(nullptr);
+        m_orphanedTiles.append(tile);
+    }
     m_tiles.clear();
 }
 
@@ -247,32 +246,6 @@ void GamePrivate::moveTile(const Cell_ptr &sourceCell, const Cell_ptr &targetCel
 }
 
 
-void GamePrivate::addScore(int value)
-{
-    if (0 < value) {
-        QMetaObject::invokeMethod(m_gameQuickItem, ADD_SCORE_FUNCTION_NAME, Q_ARG(QVariant, value));
-    }
-}
-
-
-void GamePrivate::setScore(int value)
-{
-    m_gameQuickItem->setProperty(SCORE_PROPERTY_NAME, value);
-}
-
-
-void GamePrivate::setBestScore(int value)
-{
-    m_gameQuickItem->setProperty(BEST_SCORE_PROPERTY_NAME, value);
-}
-
-
-int GamePrivate::bestScore() const
-{
-    return m_gameQuickItem->property(BEST_SCORE_PROPERTY_NAME).toInt();
-}
-
-
 void GamePrivate::setOrphaned(const Tile_ptr &tile)
 {
     if (!m_orphanedTiles.contains(tile)) {
@@ -288,8 +261,8 @@ bool GamePrivate::isDefeat() const
         return false;
     }
 
-    const int rows = m_gameboard->rows();
-    const int columns = m_gameboard->columns();
+    const int rows = m_gameboard->size().rows();
+    const int columns = m_gameboard->size().columns();
 
     const int latestRow = rows - 1;
     const int latestColumn = columns - 1;
@@ -343,6 +316,8 @@ Game::Game(QObject *parent) :
     QObject(parent),
     d(std::make_unique<GamePrivate>(this))
 {
+    connect(this, &Game::scoreChanged, this, &Game::onScoreChanged);
+    connect(this, &Game::bestScoreChanged, this, &Game::onBestScoreChanged);
     connect(d->m_qmlEngine.get(), &QQmlApplicationEngine::objectCreated, this, &Game::onRootObjectCreated);
 }
 
@@ -365,7 +340,7 @@ bool Game::init()
 
 void Game::setGeometry(const QRect &rect)
 {
-    Q_ASSERT(d->m_windowQuickItem);
+    Q_ASSERT(nullptr != d->m_windowQuickItem);
 
     d->m_windowQuickItem->setGeometry(rect);
 }
@@ -373,7 +348,7 @@ void Game::setGeometry(const QRect &rect)
 
 void Game::setGeometry(int x, int y, int w, int h)
 {
-    Q_ASSERT(d->m_windowQuickItem);
+    Q_ASSERT(nullptr != d->m_windowQuickItem);
 
     d->m_windowQuickItem->setGeometry(x, y, w, h);
 }
@@ -381,7 +356,7 @@ void Game::setGeometry(int x, int y, int w, int h)
 
 QRect Game::geometry() const
 {
-    Q_ASSERT(d->m_windowQuickItem);
+    Q_ASSERT(nullptr != d->m_windowQuickItem);
 
     return d->m_windowQuickItem->geometry();
 }
@@ -389,7 +364,7 @@ QRect Game::geometry() const
 
 bool Game::isVisible() const
 {
-    Q_ASSERT(d->m_windowQuickItem);
+    Q_ASSERT(nullptr != d->m_windowQuickItem);
 
     return d->m_windowQuickItem->isVisible();
 }
@@ -397,56 +372,45 @@ bool Game::isVisible() const
 
 Qt::WindowState Game::windowState() const
 {
-    Q_ASSERT(d->m_windowQuickItem);
+    Q_ASSERT(nullptr != d->m_windowQuickItem);
 
     return d->m_windowQuickItem->windowState();
 }
 
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
+
 Qt::WindowStates Game::windowStates() const
 {
-    Q_ASSERT(d->m_windowQuickItem);
+    Q_ASSERT(nullptr != d->m_windowQuickItem);
 
     return d->m_windowQuickItem->windowStates();
 }
 
-
-void Game::setScore(int score)
-{
-    Q_ASSERT(d->m_gameQuickItem);
-
-    d->m_gameQuickItem->setProperty(SCORE_PROPERTY_NAME, score);
-
-}
+#endif
 
 
 int Game::score() const
 {
-    Q_ASSERT(d->m_gameQuickItem);
-
-    return d->m_gameQuickItem->property(SCORE_PROPERTY_NAME).toInt();
-}
-
-
-void Game::setBestScore(int score)
-{
-    Q_ASSERT(d->m_gameQuickItem);
-
-    d->m_gameQuickItem->setProperty(BEST_SCORE_PROPERTY_NAME, score);
+    return d->m_score;
 }
 
 
 int Game::bestScore() const
 {
-    Q_ASSERT(d->m_gameQuickItem);
+    return d->m_bestScore;
+}
 
-    return d->m_gameQuickItem->property(BEST_SCORE_PROPERTY_NAME).toInt();
+
+GameboardSize Game::gameboardSize() const
+{
+    return d->m_gameboardSize;
 }
 
 
 void Game::showFullScreen()
 {
-    Q_ASSERT(d->m_windowQuickItem);
+    Q_ASSERT(nullptr != d->m_windowQuickItem);
 
     d->m_windowQuickItem->showFullScreen();
 }
@@ -454,7 +418,7 @@ void Game::showFullScreen()
 
 void Game::showMaximized()
 {
-    Q_ASSERT(d->m_windowQuickItem);
+    Q_ASSERT(nullptr != d->m_windowQuickItem);
 
     d->m_windowQuickItem->showMaximized();
 }
@@ -462,7 +426,7 @@ void Game::showMaximized()
 
 void Game::showMinimized()
 {
-    Q_ASSERT(d->m_windowQuickItem);
+    Q_ASSERT(nullptr != d->m_windowQuickItem);
 
     d->m_windowQuickItem->showMinimized();
 }
@@ -470,7 +434,7 @@ void Game::showMinimized()
 
 void Game::showNormal()
 {
-    Q_ASSERT(d->m_windowQuickItem);
+    Q_ASSERT(nullptr != d->m_windowQuickItem);
 
     d->m_windowQuickItem->showNormal();
 }
@@ -478,14 +442,14 @@ void Game::showNormal()
 
 void Game::show()
 {
-    Q_ASSERT(d->m_windowQuickItem);
+    Q_ASSERT(nullptr != d->m_windowQuickItem);
 
     d->m_windowQuickItem->show();
 }
 
 void Game::setVisible(bool visible)
 {
-    Q_ASSERT(d->m_windowQuickItem);
+    Q_ASSERT(nullptr != d->m_windowQuickItem);
 
     d->m_windowQuickItem->setVisible(visible);
 }
@@ -493,33 +457,57 @@ void Game::setVisible(bool visible)
 
 void Game::setWindowState(Qt::WindowState state)
 {
-    Q_ASSERT(d->m_windowQuickItem);
+    Q_ASSERT(nullptr != d->m_windowQuickItem);
 
     d->m_windowQuickItem->setWindowState(state);
 }
 
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
+
 void Game::setWindowStates(Qt::WindowStates states)
 {
-    Q_ASSERT(d->m_windowQuickItem);
+    Q_ASSERT(nullptr != d->m_windowQuickItem);
 
     return d->m_windowQuickItem->setWindowStates(states);
+}
+
+#endif
+
+
+void Game::setScore(int score)
+{
+    if (d->m_score != score) {
+        d->m_score = score;
+        emit scoreChanged(score);
+    }
+}
+
+
+void Game::setBestScore(int score)
+{
+    if (d->m_bestScore != score) {
+        d->m_bestScore = score;
+        emit bestScoreChanged(score);
+    }
+}
+
+
+void Game::setGameboardSize(const GameboardSize &size)
+{
+    if (d->m_gameboardSize != size) {
+        d->m_gameboardSize = size;
+        emit gameboardSizeChanged(size);
+    }
 }
 
 
 void Game::startNewGame()
 {
-    startNewGame(DEFAULT_GAMEBOARD_ROWS, DEFAULT_GAMEBOARD_COLUMNS);
-}
-
-
-void Game::startNewGame(int rows, int columns)
-{
+    setScore(0);
     d->setGameState(GamePrivate::Play);
-    d->setGameboardSize(rows, columns);
-    d->setScore(0);
-    d->clearTiles();
     d->updateCells();
+    d->clearTiles();
     d->createStartTiles();
     d->setMoveKeysBlocked(false);
 }
@@ -533,13 +521,13 @@ void Game::moveTiles(Game::MoveDirection direction)
     switch (direction) {
     case MoveLeft:
     case MoveRight:
-        rows = d->m_gameboard->rows();
-        columns = d->m_gameboard->columns();
+        rows = d->m_gameboard->size().rows();
+        columns = d->m_gameboard->size().columns();
         break;
     case MoveUp:
     case MoveDown:
-        rows = d->m_gameboard->columns();
-        columns = d->m_gameboard->rows();
+        rows = d->m_gameboard->size().columns();
+        columns = d->m_gameboard->size().rows();
         break;
     }
 
@@ -707,14 +695,16 @@ void Game::onRootObjectCreated(QObject *object, const QUrl &url)
 
     d->m_windowQuickItem = q_check_ptr(qobject_cast<QQuickWindow*>(object));
     d->m_windowQuickItem->installEventFilter(this);
+
     d->m_gameQuickItem = q_check_ptr(object->findChild<QQuickItem*>(QLatin1Literal(GAME_OBJECT_NAME)));
     connect(d->m_gameQuickItem, SIGNAL(continueGameRequested()), this, SLOT(onContinueGameRequested()));
     connect(d->m_gameQuickItem, SIGNAL(restartGameRequested()), this, SLOT(onRestartGameRequested()));
 
     QQuickItem *gameboardQuickItem = q_check_ptr(d->m_gameQuickItem->findChild<QQuickItem*>(QLatin1Literal(GAMEBOARD_OBJECT_NAME)));
     d->m_gameboard = std::make_unique<Gameboard>(gameboardQuickItem);
+    d->m_gameboard->setSize(d->m_gameboardSize);
 
-    startNewGame();
+    emit gameReady();
 }
 
 
@@ -741,14 +731,14 @@ void Game::onTileMoveFinished()
     }
 
     if (0 == --d->m_movingTilesCount) {
-        int score = 0;
+        int score = d->m_score;
         for (const auto &tile : d->m_aboutToOrphanedTiles) {
             score += tile->value() * 2;
             d->setOrphaned(tile);
         }
 
         d->m_aboutToOrphanedTiles.clear();
-        d->addScore(score);
+        setScore(score);
 
         if (d->m_won) {
             d->setGameState(GamePrivate::Win);
@@ -764,6 +754,26 @@ void Game::onTileMoveFinished()
             d->setMoveKeysBlocked(false);
         }
     }
+}
+
+
+void Game::onScoreChanged(int score)
+{
+    Q_ASSERT(nullptr != d->m_gameQuickItem);
+
+    d->m_gameQuickItem->setProperty(SCORE_PROPERTY_NAME, score);
+
+    if (d->m_bestScore < score) {
+        setBestScore(score);
+    }
+}
+
+
+void Game::onBestScoreChanged(int score)
+{
+    Q_ASSERT(nullptr != d->m_gameQuickItem);
+
+  d->m_gameQuickItem->setProperty(BEST_SCORE_PROPERTY_NAME, score);
 }
 
 } // namespace Internal
