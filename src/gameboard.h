@@ -50,12 +50,13 @@ public:
 
     QQuickItem *tilesParent() const;
     GameboardSize size() const;
-    QMap<int, Cell_ptr> cells() const;
+    QList<Cell_ptr> cells() const;
 
 signals:
     void rowsChanged(int rows);
     void columnsChanged(int columns);
     void sizeChanged(const GameboardSize &size);
+    void cellsChanged(const QList<Cell_ptr> &cells);
 
 public slots:
     void setSize(const GameboardSize &size);

@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
     Game::GameController gameController;
     QObject::connect(&app, &QGuiApplication::lastWindowClosed, &gameController, &Game::GameController::shutdown);
 
-    if (!gameController.start()) {
+    if (!gameController.init()) {
         return EXIT_FAILURE;
     }
 

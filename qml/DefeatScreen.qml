@@ -26,7 +26,7 @@ import 'qrc:/qml/Constants.js' as Constants
 Item {
     id: defeatScreen
 
-    signal restartGameRequested
+    signal startNewGameRequested
 
     Rectangle {
         id: background
@@ -59,7 +59,7 @@ Item {
         text: qsTr('Try again')
         onClicked: {
             if (0.0 < opacity) {
-                restartGameRequested()
+                startNewGameRequested()
             }
         }
     }

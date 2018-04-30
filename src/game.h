@@ -25,27 +25,39 @@
 
 #include <QObject>
 
+QT_BEGIN_NAMESPACE
+class QQmlApplicationEngine;
+class QQuickItem;
+QT_END_NAMESPACE
+
 #include <memory>
+
+#include "movedirection.h"
 
 
 namespace Game {
 namespace Internal {
 
+class Cell;
 class GamePrivate;
 class GameboardSize;
+
+using Cell_ptr = std::shared_ptr<Cell>;
+
 
 class Game final : public QObject
 {
     Q_OBJECT
 public:
-    enum MoveDirection : quint8 {
-        MoveLeft,
-        MoveRight,
-        MoveUp,
-        MoveDown
+    enum class GameState : quint8
+    {
+        Play,
+        Win,
+        Defeat,
+        Continue
     };
 
-    explicit Game(QObject *parent = nullptr);
+    explicit Game(QQmlApplicationEngine *qmlEngine, QObject *parent = nullptr);
     ~Game();
 
     bool init();
@@ -62,14 +74,22 @@ public:
 
     int score() const;
     int bestScore() const;
-
     GameboardSize gameboardSize() const;
+    GameState gameState() const;
+
+    QList<Cell_ptr> cells() const;
+    QQuickItem *tilesParent() const;
 
 signals:
     void gameReady();
     void scoreChanged(int score);
     void bestScoreChanged(int score);
     void gameboardSizeChanged(const GameboardSize &size);
+    void gameStateChanged(GameState state);
+    void cellsChanged(const QList<Cell_ptr> &cells);
+    void startNewGameRequested();
+    void continueGameRequested();
+    void moveTilesRequested(MoveDirection moveDirection);
 
 public slots:
     void showFullScreen();
@@ -86,20 +106,14 @@ public slots:
 
     void setScore(int score);
     void setBestScore(int score);
-
     void setGameboardSize(const GameboardSize &size);
-
-    void startNewGame();
-    void moveTiles(MoveDirection direction);
+    void setGameState(GameState state);
 
 protected:
     bool eventFilter(QObject *object, QEvent *event) override;
 
 private slots:
     void onRootObjectCreated(QObject *object, const QUrl &url);
-    void onContinueGameRequested();
-    void onRestartGameRequested();
-    void onTileMoveFinished();
     void onScoreChanged(int score);
     void onBestScoreChanged(int score);
 

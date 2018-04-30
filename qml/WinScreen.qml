@@ -27,7 +27,7 @@ Item {
     id: winScreen
 
     signal continueGameRequested
-    signal restartGameRequested
+    signal startNewGameRequested
 
     Rectangle {
         id: background
@@ -76,7 +76,7 @@ Item {
             text: qsTr('Try again')
             onClicked: {
                 if (0 < opacity) {
-                    restartGameRequested()
+                    startNewGameRequested()
                 }
             }
         }

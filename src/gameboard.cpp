@@ -85,9 +85,9 @@ GameboardSize Gameboard::size() const
 }
 
 
-QMap<int, Cell_ptr> Gameboard::cells() const
+QList<Cell_ptr> Gameboard::cells() const
 {
-    return d->m_cells;
+    return d->m_cells.values();
 }
 
 
@@ -111,6 +111,7 @@ void Gameboard::onSizeChanged(const GameboardSize &size)
 void Gameboard::onCellItemAdded(int index, QQuickItem *item)
 {
     d->m_cells.insert(index, std::make_shared<Cell>(index, item));
+    emit cellsChanged(d->m_cells.values());
 }
 
 
@@ -119,6 +120,7 @@ void Gameboard::onCellItemRemoved(int index, QQuickItem *item)
     Q_UNUSED(item)
 
     d->m_cells.remove(index);
+    emit cellsChanged(d->m_cells.values());
 }
 
 } // namespace Internal

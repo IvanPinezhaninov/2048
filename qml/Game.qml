@@ -30,7 +30,7 @@ Item {
     property alias bestScore: bestScoreLabel.value
 
     signal continueGameRequested
-    signal restartGameRequested
+    signal startNewGameRequested
 
     objectName: 'Game'
     state: 'play'
@@ -45,7 +45,7 @@ Item {
             PropertyChanges { target: loader; source: 'DefeatScreen.qml' }
             StateChangeScript {
                 script: {
-                    loader.item.restartGameRequested.connect(restartGameRequested)
+                    loader.item.startNewGameRequested.connect(startNewGameRequested)
                 }
             }
         },
@@ -56,7 +56,7 @@ Item {
             StateChangeScript {
                 script: {
                     loader.item.continueGameRequested.connect(continueGameRequested)
-                    loader.item.restartGameRequested.connect(restartGameRequested)
+                    loader.item.startNewGameRequested.connect(startNewGameRequested)
                 }
             }
         },
@@ -120,7 +120,7 @@ Item {
         anchors.top: titleText.bottom
         anchors.right: gameboard.right
         text: qsTr('New Game')
-        onClicked: restartGameRequested()
+        onClicked: startNewGameRequested()
     }
 
     Item {

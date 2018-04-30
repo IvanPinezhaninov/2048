@@ -67,6 +67,7 @@ set(HEADERS
     src/gameboardsize.h
     src/game.h
     src/gamecontroller.h
+    src/movedirection.h
 )
 
 set(SOURCES

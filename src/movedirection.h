@@ -20,50 +20,23 @@
 ***************************************************************************/
 
 
-#ifndef GAMECONTROLLER_H
-#define GAMECONTROLLER_H
+#ifndef MOVEDIRECTION_H
+#define MOVEDIRECTION_H
 
-#include <QObject>
-
-#include <memory>
-
-#include "movedirection.h"
-
+#include <QtGlobal>
 
 namespace Game {
 namespace Internal {
-class GameboardSize;
-class GameControllerPrivate;
-} // namespace Internal
 
-class GameController final : public QObject
+enum class MoveDirection: quint8
 {
-    Q_OBJECT
-public:
-    explicit GameController(QObject *parent = nullptr);
-    ~GameController();
-
-    bool init();
-
-public slots:
-    void shutdown();
-
-private slots:
-    void onGameReady();
-    void onGameboardSizeChanged(const Internal::GameboardSize &size);
-    void onStartNewGameRequested();
-    void onContinueGameRequested();
-    void onMoveTilesRequested(Internal::MoveDirection moveDirection);
-    void onTileMoveFinished();
-
-private:
-    Q_DISABLE_COPY(GameController)
-
-    const std::unique_ptr<Internal::GameControllerPrivate> d;
-
-    friend class Internal::GameControllerPrivate;
+    Left,
+    Right,
+    Up,
+    Down
 };
 
+} // namespace Internal
 } // namespace Game
 
-#endif // GAMECONTROLLER_H
+#endif // MOVEDIRECTION_H
