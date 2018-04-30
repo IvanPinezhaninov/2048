@@ -30,6 +30,7 @@ Rectangle {
     property int value: 0
     property int previousValue: 0
     property bool valueAnimation: false
+    readonly property var locale: Qt.locale()
 
     height: 55
     width: 60
@@ -63,7 +64,7 @@ Rectangle {
         font.pixelSize: Constants.scoreTextPixelSize
         font.weight: Font.Bold
         color: '#ffffff'
-        text: parent.value
+        text: Number(parent.value).toLocaleString(locale, 'f', 0)
 
         onTextChanged: {
             if (paintedWidth > parent.width - 20) {
@@ -110,7 +111,7 @@ Rectangle {
         var diff = value - previousValue
         previousValue = value
         if (valueAnimation && 0 < diff) {
-            animatedText.text = '+' + diff
+            animatedText.text = '+' + Number(diff).toLocaleString(locale, 'f', 0)
             animation.restart()
         }
     }
