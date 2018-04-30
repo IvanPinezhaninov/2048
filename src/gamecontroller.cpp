@@ -234,7 +234,7 @@ void GameControllerPrivate::moveTiles(MoveDirection direction)
             break;
         }
 
-        int previousCellindex = firstCellIndex;
+        int previousCellIndex = firstCellIndex;
 
         for (int column = 1; column < columns; ++column) {
             int cellIndex = 0;
@@ -259,7 +259,7 @@ void GameControllerPrivate::moveTiles(MoveDirection direction)
                 continue;
             }
 
-            auto previousCell = m_cells.at(previousCellindex);
+            auto previousCell = m_cells.at(previousCellIndex);
             if (!previousCell->tile()) {
                 const auto &tile = cell->tile();
                 tile->setZ(0);
@@ -276,16 +276,16 @@ void GameControllerPrivate::moveTiles(MoveDirection direction)
                 moveTile(cell, previousCell);
                 switch (direction) {
                 case MoveDirection::Left:
-                    ++previousCellindex;
+                    ++previousCellIndex;
                     break;
                 case MoveDirection::Right:
-                    --previousCellindex;
+                    --previousCellIndex;
                     break;
                 case MoveDirection::Up:
-                    previousCellindex += rows;
+                    previousCellIndex += rows;
                     break;
                 case MoveDirection::Down:
-                    previousCellindex -= rows;
+                    previousCellIndex -= rows;
                     break;
                 }
                 continue;
@@ -295,11 +295,11 @@ void GameControllerPrivate::moveTiles(MoveDirection direction)
             switch (direction) {
             case MoveDirection::Left:
             case MoveDirection::Up:
-                cellsIndexDelta = cellIndex - previousCellindex;
+                cellsIndexDelta = cellIndex - previousCellIndex;
                 break;
             case MoveDirection::Right:
             case MoveDirection::Down:
-                cellsIndexDelta = previousCellindex - cellIndex;
+                cellsIndexDelta = previousCellIndex - cellIndex;
                 break;
             }
 
@@ -307,20 +307,20 @@ void GameControllerPrivate::moveTiles(MoveDirection direction)
                 switch (direction) {
                 case MoveDirection::Left:
                 case MoveDirection::Up:
-                    previousCellindex += neighborCellsIndexDelta;
+                    previousCellIndex += neighborCellsIndexDelta;
                     break;
                 case MoveDirection::Right:
                 case MoveDirection::Down:
-                    previousCellindex -= neighborCellsIndexDelta;
+                    previousCellIndex -= neighborCellsIndexDelta;
                     break;
                 }
-                previousCell = m_cells.at(previousCellindex);
+                previousCell = m_cells.at(previousCellIndex);
                 cell->tile()->setZ(0);
                 moveTile(cell, previousCell);
                 continue;
             }
 
-            previousCellindex = cellIndex;
+            previousCellIndex = cellIndex;
         }
     }
 
