@@ -33,6 +33,9 @@ Rectangle {
     readonly property real mediumFontRatio: 0.42
     readonly property real smallFontRatio: 0.32
     readonly property real xSmallFontRatio: 0.28
+    readonly property real xxSmallFontRatio: 0.24
+    readonly property real xxxSmallFontRatio: 0.22
+    readonly property real xxxxSmallFontRatio: 0.18
 
     signal moveFinished
 
@@ -128,7 +131,6 @@ Rectangle {
             when: tile.value === 4
             PropertyChanges { target: tile; color: '#ede0c8' }
             PropertyChanges { target: tileText;  color: '#776e65' }
-            PropertyChanges { target: bounceAnimation; running: true }
         },
 
         State {
@@ -136,7 +138,6 @@ Rectangle {
             when: tile.value === 8
             PropertyChanges { target: tile; color: '#f2b179' }
             PropertyChanges { target: tileText;  color: '#f9f6f2' }
-            PropertyChanges { target: bounceAnimation; running: true }
         },
 
         State {
@@ -144,7 +145,6 @@ Rectangle {
             when: tile.value === 16
             PropertyChanges { target: tile; color: '#f59563' }
             PropertyChanges { target: tileText;  color: '#f9f6f2' }
-            PropertyChanges { target: bounceAnimation; running: true }
         },
 
         State {
@@ -152,7 +152,6 @@ Rectangle {
             when: tile.value === 32
             PropertyChanges { target: tile; color: '#f67c5f' }
             PropertyChanges { target: tileText;  color: '#f9f6f2' }
-            PropertyChanges { target: bounceAnimation; running: true }
         },
 
         State {
@@ -160,7 +159,6 @@ Rectangle {
             when: tile.value === 64
             PropertyChanges { target: tile; color: '#f65e3b' }
             PropertyChanges { target: tileText;  color: '#f9f6f2' }
-            PropertyChanges { target: bounceAnimation; running: true }
         },
 
         State {
@@ -169,7 +167,6 @@ Rectangle {
             PropertyChanges { target: tile; color: '#edcf72' }
             PropertyChanges { target: tileText;  font.pixelSize: tile.width * mediumFontRatio }
             PropertyChanges { target: tileText;  color: '#f9f6f2' }
-            PropertyChanges { target: bounceAnimation; running: true }
         },
 
         State {
@@ -178,7 +175,6 @@ Rectangle {
             PropertyChanges { target: tile; color: '#edcc61' }
             PropertyChanges { target: tileText;  font.pixelSize: tile.width * mediumFontRatio }
             PropertyChanges { target: tileText;  color: '#f9f6f2' }
-            PropertyChanges { target: bounceAnimation; running: true }
         },
 
         State {
@@ -187,7 +183,6 @@ Rectangle {
             PropertyChanges { target: tile; color: '#edc850' }
             PropertyChanges { target: tileText;  font.pixelSize: tile.width * mediumFontRatio }
             PropertyChanges { target: tileText;  color: '#f9f6f2' }
-            PropertyChanges { target: bounceAnimation; running: true }
         },
 
         State {
@@ -196,7 +191,6 @@ Rectangle {
             PropertyChanges { target: tile; color: '#edc53f' }
             PropertyChanges { target: tileText;  font.pixelSize: tile.width * smallFontRatio }
             PropertyChanges { target: tileText;  color: '#f9f6f2' }
-            PropertyChanges { target: bounceAnimation; running: true }
         },
 
         State {
@@ -205,16 +199,35 @@ Rectangle {
             PropertyChanges { target: tile; color: '#edc22e' }
             PropertyChanges { target: tileText;  font.pixelSize: tile.width * smallFontRatio }
             PropertyChanges { target: tileText;  color: '#f9f6f2' }
-            PropertyChanges { target: bounceAnimation; running: true }
         },
 
         State {
-            name: 'over'
-            when: tile.value > 2048
+            name: '4096+'
+            when: tile.value >= 4096 && tile.value < 131072
             PropertyChanges { target: tile; color: '#3c3a32' }
             PropertyChanges { target: tileText;  font.pixelSize: tile.width * xSmallFontRatio }
             PropertyChanges { target: tileText;  color: '#f9f6f2' }
-            PropertyChanges { target: bounceAnimation; running: true }
+        },
+
+        State {
+            name: '131072+'
+            when: tile.value >= 131072 && tile.value < 1048576
+            extend: '4096+'
+            PropertyChanges { target: tileText;  font.pixelSize: tile.width * xxSmallFontRatio }
+        },
+
+        State {
+            name: '1048576+'
+            when: tile.value >= 1048576 && tile.value < 16777216
+            extend: '4096+'
+            PropertyChanges { target: tileText;  font.pixelSize: tile.width * xxxSmallFontRatio }
+        },
+
+        State {
+            name: '16777216+'
+            when: tile.value >= 16777216
+            extend: '4096+'
+            PropertyChanges { target: tileText;  font.pixelSize: tile.width * xxxxSmallFontRatio }
         }
     ]
 
@@ -226,6 +239,8 @@ Rectangle {
             PropertyAction { target: bounceAnimation; property: 'running'; value: false }
         }
     ]
+
+    onValueChanged: bounceAnimation.running = true
 
     function onMoveAnimationRunningChanged(running)
     {
