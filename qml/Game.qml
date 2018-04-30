@@ -43,22 +43,11 @@ Item {
         State {
             name: 'defeat'
             PropertyChanges { target: loader; source: 'DefeatScreen.qml' }
-            StateChangeScript {
-                script: {
-                    loader.item.startNewGameRequested.connect(startNewGameRequested)
-                }
-            }
         },
 
         State {
             name: 'win'
             PropertyChanges { target: loader; source: 'WinScreen.qml' }
-            StateChangeScript {
-                script: {
-                    loader.item.continueGameRequested.connect(continueGameRequested)
-                    loader.item.startNewGameRequested.connect(startNewGameRequested)
-                }
-            }
         },
 
         State {
@@ -144,6 +133,20 @@ Item {
 
     Loader {
         id: loader
+
         anchors.fill: gameboard
+        asynchronous: true
+
+        onLoaded: {
+            switch (game.state) {
+            case 'win':
+                loader.item.continueGameRequested.connect(continueGameRequested)
+                loader.item.startNewGameRequested.connect(startNewGameRequested)
+                break
+            case 'defeat':
+                loader.item.startNewGameRequested.connect(startNewGameRequested)
+                break
+            }
+        }
     }
 }
