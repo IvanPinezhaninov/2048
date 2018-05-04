@@ -22,7 +22,6 @@
 
 #include "cell.h"
 #include "game.h"
-#include "gameboardsize.h"
 #include "gamecontroller.h"
 #include "tile.h"
 
@@ -201,13 +200,13 @@ void GameControllerPrivate::moveTiles(MoveDirection direction)
     switch (direction) {
     case MoveDirection::Left:
     case MoveDirection::Right:
-        rows = m_game->gameboardSize().rows();
-        columns = m_game->gameboardSize().columns();
+        rows = m_game->gameboardRows();
+        columns = m_game->gameboardColumns();
         break;
     case MoveDirection::Up:
     case MoveDirection::Down:
-        rows = m_game->gameboardSize().columns();
-        columns = m_game->gameboardSize().rows();
+        rows = m_game->gameboardColumns();
+        columns = m_game->gameboardRows();
         break;
     }
 
@@ -354,8 +353,8 @@ bool GameControllerPrivate::isDefeat() const
         return false;
     }
 
-    const int rows = m_game->gameboardSize().rows();
-    const int columns = m_game->gameboardSize().columns();
+    const int rows = m_game->gameboardRows();
+    const int columns = m_game->gameboardColumns();
 
     const int latestRow = rows - 1;
     const int latestColumn = columns - 1;
@@ -401,7 +400,7 @@ void GameControllerPrivate::setMoveBlocked(bool blocked)
 
 void GameControllerPrivate::setGameboardSize(int rows, int columns)
 {
-    m_game->setGameboardSize({ rows, columns});
+    m_game->setGameboardSize(rows, columns);
 }
 
 
@@ -500,10 +499,8 @@ void GameController::onGameReady()
 }
 
 
-void GameController::onGameboardSizeChanged(const Internal::GameboardSize &size)
+void GameController::onGameboardSizeChanged()
 {
-    Q_UNUSED(size)
-
     d->m_cells = d->m_game->cells();
 }
 

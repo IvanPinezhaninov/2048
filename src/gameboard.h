@@ -48,21 +48,26 @@ public:
     explicit Gameboard(QQuickItem *gameboardQuickItem, QObject *parent = nullptr);
     ~Gameboard();
 
-    QQuickItem *tilesParent() const;
-    GameboardSize size() const;
+    int rows() const;
+    int columns() const;
     QList<Cell_ptr> cells() const;
 
+    QQuickItem *tilesParent() const;
+
 signals:
+    void sizeChanged();
     void rowsChanged(int rows);
     void columnsChanged(int columns);
-    void sizeChanged(const GameboardSize &size);
-    void cellsChanged(const QList<Cell_ptr> &cells);
+    void cellsChanged();
 
 public slots:
-    void setSize(const GameboardSize &size);
+    void setRows(int rows);
+    void setColumns(int columns);
+    void setSize(int rows, int columns);
 
 private slots:
-    void onSizeChanged(const GameboardSize &size);
+    void onRowsChanged(int rows);
+    void onColumnsChanged(int columns);
     void onCellItemAdded(int index, QQuickItem *item);
     void onCellItemRemoved(int index, QQuickItem *item);
 

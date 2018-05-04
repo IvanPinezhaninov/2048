@@ -50,7 +50,7 @@ public slots:
 
 private slots:
     void onGameReady();
-    void onGameboardSizeChanged(const Internal::GameboardSize &size);
+    void onGameboardSizeChanged();
     void onStartNewGameRequested();
     void onContinueGameRequested();
     void onMoveTilesRequested(Internal::MoveDirection moveDirection);

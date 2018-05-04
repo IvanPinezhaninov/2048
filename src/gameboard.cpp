@@ -22,7 +22,6 @@
 
 #include "cell.h"
 #include "gameboard.h"
-#include "gameboardsize.h"
 
 #include <QQuickItem>
 
@@ -45,7 +44,8 @@ public:
     QQuickItem *const m_gridQuickItem;
     QQuickItem *const m_repeaterQuickItem;
 
-    GameboardSize m_size;
+    int m_rows;
+    int m_columns;
     QMap<int, Cell_ptr> m_cells;
 };
 
@@ -53,7 +53,9 @@ public:
 GameboardPrivate::GameboardPrivate(QQuickItem *gameboardQuickItem) :
     m_gameboardQuickItem(gameboardQuickItem),
     m_gridQuickItem(q_check_ptr(gameboardQuickItem->findChild<QQuickItem*>(QLatin1Literal(CELLS_GRID_OBJECT_NAME)))),
-    m_repeaterQuickItem(q_check_ptr(gameboardQuickItem->findChild<QQuickItem*>(QLatin1Literal(CELLS_REPEATER_OBJECT_NAME))))
+    m_repeaterQuickItem(q_check_ptr(gameboardQuickItem->findChild<QQuickItem*>(QLatin1Literal(CELLS_REPEATER_OBJECT_NAME)))),
+    m_rows(0),
+    m_columns(0)
 {
 }
 
@@ -62,7 +64,8 @@ Gameboard::Gameboard(QQuickItem *gameboardQuickItem, QObject *parent) :
     QObject(parent),
     d(std::make_unique<GameboardPrivate>(gameboardQuickItem))
 {
-    connect(this, &Gameboard::sizeChanged, this , &Gameboard::onSizeChanged);
+    connect(this, &Gameboard::rowsChanged, this, &Gameboard::onRowsChanged);
+    connect(this, &Gameboard::columnsChanged, this, &Gameboard::onColumnsChanged);
     connect(d->m_repeaterQuickItem, SIGNAL(itemAdded(int,QQuickItem*)), this, SLOT(onCellItemAdded(int,QQuickItem*)));
     connect(d->m_repeaterQuickItem, SIGNAL(itemRemoved(int,QQuickItem*)), this, SLOT(onCellItemAdded(int,QQuickItem*)));
 }
@@ -73,15 +76,15 @@ Gameboard::~Gameboard()
 }
 
 
-QQuickItem *Gameboard::tilesParent() const
+int Gameboard::rows() const
 {
-    return d->m_gridQuickItem;
+    return d->m_rows;
 }
 
 
-GameboardSize Gameboard::size() const
+int Gameboard::columns() const
 {
-    return d->m_size;
+    return d->m_columns;
 }
 
 
@@ -91,27 +94,73 @@ QList<Cell_ptr> Gameboard::cells() const
 }
 
 
-void Gameboard::setSize(const GameboardSize &size)
+QQuickItem *Gameboard::tilesParent() const
 {
-    if (d->m_size != size) {
-        d->m_size = size;
-        emit sizeChanged(size);
+    return d->m_gridQuickItem;
+}
+
+
+void Gameboard::setRows(int rows)
+{
+    if (d->m_rows != rows) {
+        d->m_rows = rows;
+        emit rowsChanged(rows);
+        emit sizeChanged();
     }
 }
 
-void Gameboard::onSizeChanged(const GameboardSize &size)
-{
-  Q_ASSERT(nullptr != d->m_gameboardQuickItem);
 
-  d->m_gameboardQuickItem->setProperty(ROWS_PROPERTY_NAME, size.rows());
-  d->m_gameboardQuickItem->setProperty(COLUMNS_PROPERTY_NAME, size.columns());
+void Gameboard::setColumns(int columns)
+{
+    if (d->m_columns != columns) {
+        d->m_columns = columns;
+        emit columnsChanged(columns);
+        emit sizeChanged();
+    }
+}
+
+
+void Gameboard::setSize(int rows, int columns)
+{
+    bool changed = false;
+
+    if (d->m_rows != rows) {
+        d->m_rows = rows;
+        changed = true;
+        emit rowsChanged(rows);
+    }
+
+    if (d->m_columns != columns) {
+        d->m_columns = columns;
+        changed = true;
+        emit columnsChanged(columns);
+    }
+
+    if (changed) {
+        emit sizeChanged();
+    }
+}
+
+void Gameboard::onRowsChanged(int rows)
+{
+    Q_ASSERT(nullptr != d->m_gameboardQuickItem);
+
+    d->m_gameboardQuickItem->setProperty(ROWS_PROPERTY_NAME, rows);
+}
+
+
+void Gameboard::onColumnsChanged(int columns)
+{
+    Q_ASSERT(nullptr != d->m_gameboardQuickItem);
+
+    d->m_gameboardQuickItem->setProperty(COLUMNS_PROPERTY_NAME, columns);
 }
 
 
 void Gameboard::onCellItemAdded(int index, QQuickItem *item)
 {
     d->m_cells.insert(index, std::make_shared<Cell>(index, item));
-    emit cellsChanged(d->m_cells.values());
+    emit cellsChanged();
 }
 
 
@@ -120,7 +169,7 @@ void Gameboard::onCellItemRemoved(int index, QQuickItem *item)
     Q_UNUSED(item)
 
     d->m_cells.remove(index);
-    emit cellsChanged(d->m_cells.values());
+    emit cellsChanged();
 }
 
 } // namespace Internal

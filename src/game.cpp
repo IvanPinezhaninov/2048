@@ -21,7 +21,6 @@
 
 #include "game.h"
 #include "gameboard.h"
-#include "gameboardsize.h"
 
 #include <QKeyEvent>
 #include <QQmlApplicationEngine>
@@ -188,15 +187,21 @@ QList<Cell_ptr> Game::cells() const
 }
 
 
-GameboardSize Game::gameboardSize() const
-{
-    return d->m_gameboard->size();
-}
-
-
 Game::GameState Game::gameState() const
 {
     return d->m_gameState;
+}
+
+
+int Game::gameboardRows() const
+{
+    return d->m_gameboard->rows();
+}
+
+
+int Game::gameboardColumns() const
+{
+    return d->m_gameboard->columns();
 }
 
 
@@ -291,9 +296,21 @@ void Game::setBestScore(int score)
 }
 
 
-void Game::setGameboardSize(const GameboardSize &size)
+void Game::setGameboardRows(int rows)
 {
-    d->m_gameboard->setSize(size);
+    d->m_gameboard->setRows(rows);
+}
+
+
+void Game::setGameboardColumns(int columns)
+{
+    d->m_gameboard->setColumns(columns);
+}
+
+
+void Game::setGameboardSize(int rows, int columns)
+{
+    d->m_gameboard->setSize(rows, columns);
 }
 
 
@@ -373,6 +390,8 @@ void Game::onRootObjectCreated(QObject *object, const QUrl &url)
     QQuickItem *gameboardQuickItem = q_check_ptr(d->m_gameQuickItem->findChild<QQuickItem*>(QLatin1Literal(GAMEBOARD_OBJECT_NAME)));
     d->m_gameboard = std::make_unique<Gameboard>(gameboardQuickItem);
     connect(d->m_gameboard.get(), &Gameboard::sizeChanged, this, &Game::gameboardSizeChanged);
+    connect(d->m_gameboard.get(), &Gameboard::rowsChanged, this, &Game::gameboardRowsChanged);
+    connect(d->m_gameboard.get(), &Gameboard::columnsChanged, this, &Game::gameboardColumnsChanged);
     connect(d->m_gameboard.get(), &Gameboard::cellsChanged, this, &Game::cellsChanged);
 
     emit gameReady();

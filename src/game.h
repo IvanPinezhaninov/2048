@@ -74,19 +74,23 @@ public:
 
     int score() const;
     int bestScore() const;
-    GameboardSize gameboardSize() const;
     GameState gameState() const;
 
+    int gameboardRows() const;
+    int gameboardColumns() const;
     QList<Cell_ptr> cells() const;
+
     QQuickItem *tilesParent() const;
 
 signals:
     void gameReady();
     void scoreChanged(int score);
     void bestScoreChanged(int score);
-    void gameboardSizeChanged(const GameboardSize &size);
+    void gameboardSizeChanged();
+    void gameboardRowsChanged(int gameboardRows);
+    void gameboardColumnsChanged(int gameboardColumns);
     void gameStateChanged(GameState state);
-    void cellsChanged(const QList<Cell_ptr> &cells);
+    void cellsChanged();
     void startNewGameRequested();
     void continueGameRequested();
     void moveTilesRequested(MoveDirection moveDirection);
@@ -106,7 +110,9 @@ public slots:
 
     void setScore(int score);
     void setBestScore(int score);
-    void setGameboardSize(const GameboardSize &size);
+    void setGameboardRows(int rows);
+    void setGameboardColumns(int columns);
+    void setGameboardSize(int rows, int columns);
     void setGameState(GameState state);
 
 protected:
