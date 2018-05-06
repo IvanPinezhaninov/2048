@@ -11,5 +11,7 @@
         <file>qml/Button.qml</file>
         <file>qml/DefeatScreen.qml</file>
         <file>qml/WinScreen.qml</file>
+        <file>sql/configure.sql</file>
+        <file>sql/tables.sql</file>
     </qresource>
 </RCC>

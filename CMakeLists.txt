@@ -41,7 +41,7 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-find_package(Qt5 5.1 COMPONENTS Core Gui Quick REQUIRED)
+find_package(Qt5 5.1 COMPONENTS Core Gui Quick Sql REQUIRED)
 if (Qt5_FOUND)
     message(STATUS "Found Qt ${Qt5_VERSION}: ${_qt5Core_install_prefix}")
 endif()
@@ -50,23 +50,31 @@ add_definitions(
     ${Qt5Core_DEFINITIONS}
     ${Qt5Gui_DEFINITIONS}
     ${Qt5Quick_DEFINITIONS}
+    ${Qt5Sql_DEFINITIONS}
 )
 
 list(APPEND CMAKE_CXX_FLAGS
     ${Qt5Core_EXECUTABLE_COMPILE_FLAGS}
     ${Qt5Gui_EXECUTABLE_COMPILE_FLAGS}
     ${Qt5Quick_EXECUTABLE_COMPILE_FLAGS}
+    ${Qt5Sql_EXECUTABLE_COMPILE_FLAGS}
 )
 
 list(REMOVE_DUPLICATES CMAKE_CXX_FLAGS)
 
 set(HEADERS
+    src/namespaces.h
     src/cell.h
     src/tile.h
     src/gameboard.h
     src/game.h
     src/gamecontroller.h
+    src/gamestate.h
     src/movedirection.h
+    src/tilespec.h
+    src/gamespec.h
+    src/storage.h
+    src/storageworker.h
 )
 
 set(SOURCES
@@ -75,6 +83,10 @@ set(SOURCES
     src/gameboard.cpp
     src/game.cpp
     src/gamecontroller.cpp
+    src/tilespec.cpp
+    src/gamespec.cpp
+    src/storage.cpp
+    src/storageworker.cpp
     src/main.cpp
 )
 
@@ -123,12 +135,14 @@ target_include_directories(${TARGET} PRIVATE
     ${Qt5Core_INCLUDE_DIRS}
     ${Qt5Gui_INCLUDE_DIRS}
     ${Qt5Quick_INCLUDE_DIRS}
+    ${Qt5Sql_INCLUDE_DIRS}
 )
 
 target_compile_definitions(${TARGET} PRIVATE
     ${Qt5Core_COMPILE_DEFINITIONS}
     ${Qt5Gui_COMPILE_DEFINITIONS}
     ${Qt5Quick_COMPILE_DEFINITIONS}
+    ${Qt5Sql_COMPILE_DEFINITIONS}
     ORGANIZATION_NAME="${COMPANY}"
     APPLICATION_NAME="${CMAKE_PROJECT_NAME}"
 )
@@ -137,6 +151,7 @@ target_link_libraries(${TARGET} PRIVATE
     ${Qt5Core_LIBRARIES}
     ${Qt5Gui_LIBRARIES}
     ${Qt5Quick_LIBRARIES}
+    ${Qt5Sql_LIBRARIES}
 )
 
 install(TARGETS ${TARGET}

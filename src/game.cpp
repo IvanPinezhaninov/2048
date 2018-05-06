@@ -60,7 +60,8 @@ public:
     std::unique_ptr<Gameboard> m_gameboard;
     int m_score;
     int m_bestScore;
-    Game::GameState m_gameState;
+    GameState m_gameState;
+    bool m_ready;
 };
 
 
@@ -71,7 +72,8 @@ GamePrivate::GamePrivate(Game *parent, QQmlApplicationEngine *qmlEngine) :
     m_gameQuickItem(nullptr),
     m_score(0),
     m_bestScore(0),
-    m_gameState(Game::GameState::Play)
+    m_gameState(GameState::Play),
+    m_ready(false)
 {
 }
 
@@ -79,10 +81,10 @@ GamePrivate::GamePrivate(Game *parent, QQmlApplicationEngine *qmlEngine) :
 bool GamePrivate::processEnterKeyPressed()
 {
     switch (m_gameState) {
-    case Game::GameState::Win:
+    case GameState::Win:
         emit q->continueGameRequested();
         return true;
-    case Game::GameState::Defeat:
+    case GameState::Defeat:
         emit q->startNewGameRequested();
         return true;
     default:
@@ -114,6 +116,12 @@ bool Game::init()
     }
 
     return true;
+}
+
+
+bool Game::isReady() const
+{
+    return d->m_ready;
 }
 
 
@@ -187,7 +195,7 @@ QList<Cell_ptr> Game::cells() const
 }
 
 
-Game::GameState Game::gameState() const
+GameState Game::gameState() const
 {
     return d->m_gameState;
 }
@@ -314,7 +322,7 @@ void Game::setGameboardSize(int rows, int columns)
 }
 
 
-void Game::setGameState(Game::GameState state)
+void Game::setGameState(GameState state)
 {
     if (d->m_gameState != state) {
         d->m_gameState = state;
@@ -394,6 +402,7 @@ void Game::onRootObjectCreated(QObject *object, const QUrl &url)
     connect(d->m_gameboard.get(), &Gameboard::columnsChanged, this, &Game::gameboardColumnsChanged);
     connect(d->m_gameboard.get(), &Gameboard::cellsChanged, this, &Game::cellsChanged);
 
+    d->m_ready = true;
     emit gameReady();
 }
 

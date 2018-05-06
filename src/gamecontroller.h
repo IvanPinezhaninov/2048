@@ -32,8 +32,8 @@
 
 namespace Game {
 namespace Internal {
-class GameboardSize;
 class GameControllerPrivate;
+class GameSpec;
 } // namespace Internal
 
 class GameController final : public QObject
@@ -50,11 +50,18 @@ public slots:
 
 private slots:
     void onGameReady();
-    void onGameboardSizeChanged();
     void onStartNewGameRequested();
     void onContinueGameRequested();
-    void onMoveTilesRequested(Internal::MoveDirection moveDirection);
+    void onMoveTilesRequested(Internal::MoveDirection direction);
     void onTileMoveFinished();
+    void onStorageReady();
+    void onStorageError();
+    void onGameCreated();
+    void onCreateGameError();
+    void onGameSaved();
+    void onSaveGameError();
+    void onGameRestored(const Internal::GameSpec &gameSpec);
+    void onRestoreGameError();
 
 private:
     Q_DISABLE_COPY(GameController)

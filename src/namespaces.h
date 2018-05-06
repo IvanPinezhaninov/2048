@@ -20,31 +20,17 @@
 ***************************************************************************/
 
 
-#ifndef MOVEDIRECTION_H
-#define MOVEDIRECTION_H
+#ifndef NAMESPACES_H
+#define NAMESPACES_H
 
-#include "namespaces.h"
+#include <QMetaObject>
 
 
 namespace Game {
+Q_NAMESPACE
 namespace Internal {
-
-enum class MoveDirection: quint8
-{
-    None,
-    Left,
-    Right,
-    Up,
-    Down
-};
-
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 8, 0))
-    Q_ENUM_NS(MoveDirection)
-#else
-    Q_ENUMS(MoveDirection)
-#endif
-
+Q_NAMESPACE
 } // namespace Internal
 } // namespace Game
 
-#endif // MOVEDIRECTION_H
+#endif // NAMESPACES_H

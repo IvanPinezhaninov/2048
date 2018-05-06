@@ -20,8 +20,8 @@
 ***************************************************************************/
 
 
-#ifndef MOVEDIRECTION_H
-#define MOVEDIRECTION_H
+#ifndef GAMESTATE_H
+#define GAMESTATE_H
 
 #include "namespaces.h"
 
@@ -29,22 +29,21 @@
 namespace Game {
 namespace Internal {
 
-enum class MoveDirection: quint8
+enum class GameState : quint8
 {
-    None,
-    Left,
-    Right,
-    Up,
-    Down
+    Play,
+    Win,
+    Defeat,
+    Continue
 };
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 8, 0))
-    Q_ENUM_NS(MoveDirection)
+    Q_ENUM_NS(GameState)
 #else
-    Q_ENUMS(MoveDirection)
+    Q_ENUMS(GameState)
 #endif
 
 } // namespace Internal
 } // namespace Game
 
-#endif // MOVEDIRECTION_H
+#endif // GAMESTATE_H

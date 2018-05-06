@@ -20,65 +20,39 @@
 ***************************************************************************/
 
 
-#ifndef GAMEBOARD_H
-#define GAMEBOARD_H
-
-#include <QObject>
+#ifndef GAMESPEC_H
+#define GAMESPEC_H
 
 #include <memory>
 
-QT_BEGIN_NAMESPACE
-class QQuickItem;
-QT_END_NAMESPACE
-
+#include <QList>
+#include <QMetaType>
 
 namespace Game {
 namespace Internal {
 
-class Cell;
-class GameboardPrivate;
+class GameSpecPrivate;
+class TileSpec;
 
-using Cell_ptr = std::shared_ptr<Cell>;
-
-class Gameboard final : public QObject
+class GameSpec final
 {
-    Q_OBJECT
 public:
-    explicit Gameboard(QQuickItem *gameboardQuickItem, QObject *parent = nullptr);
-    ~Gameboard();
+    GameSpec();
+    GameSpec(int rows, int columns, int score, int bestScore, const QList<TileSpec> &tiles);
 
     int rows() const;
     int columns() const;
-    QList<Cell_ptr> cells() const;
-
-    QQuickItem *tilesParent() const;
-
-signals:
-    void sizeChanged();
-    void rowsChanged(int rows);
-    void columnsChanged(int columns);
-    void cellsChanged();
-
-public slots:
-    void setRows(int rows);
-    void setColumns(int columns);
-    void setSize(int rows, int columns);
-
-private slots:
-    void onRowsChanged(int rows);
-    void onColumnsChanged(int columns);
-    void onCellItemAdded(int index, QQuickItem *item);
-    void onCellItemRemoved(int index, QQuickItem *item);
+    int score() const;
+    int bestScore() const;
+    QList<TileSpec> tiles() const;
 
 private:
-    Q_DISABLE_COPY(Gameboard)
-
-    const std::unique_ptr<GameboardPrivate> d;
-
-    friend class GameboardPrivate;
+    std::shared_ptr<GameSpecPrivate> d;
 };
 
 } // namespace Internal
 } // namespace Game
 
-#endif // GAMEBOARD_H
+Q_DECLARE_METATYPE(Game::Internal::GameSpec)
+
+#endif // GAMESPEC_H

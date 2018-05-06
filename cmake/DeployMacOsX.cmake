@@ -54,6 +54,13 @@ install(
     DESTINATION "${BUNDLE_PLUGINS_DIR}/platforms"
 )
 
+# install libqsqlite.dylib
+
+install(
+    FILES "${QT_ROOT_DIR}/plugins/sqldrivers/libqsqlite${LIB_SUFFIX}"
+    DESTINATION "${BUNDLE_PLUGINS_DIR}/sqldrivers"
+)
+
 # install libqtquick2plugin.dylib
 
 install(
@@ -100,6 +107,7 @@ install(CODE "
 
 set(FIXUP_LIBS
     "${BUNDLE_PLUGINS_DIR}/platforms/libqcocoa${LIB_SUFFIX}"
+    "${BUNDLE_PLUGINS_DIR}/sqldrivers/libqsqlite${LIB_SUFFIX}"
     "${BUNDLE_PLUGINS_DIR}/qml/libqtquick2plugin${LIB_SUFFIX}"
     "${BUNDLE_PLUGINS_DIR}/qml/libwindowplugin${LIB_SUFFIX}"
 )

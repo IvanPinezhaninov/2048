@@ -20,31 +20,30 @@
 ***************************************************************************/
 
 
-#ifndef MOVEDIRECTION_H
-#define MOVEDIRECTION_H
+#ifndef TILESPEC_H
+#define TILESPEC_H
 
-#include "namespaces.h"
-
+#include <memory>
 
 namespace Game {
 namespace Internal {
 
-enum class MoveDirection: quint8
-{
-    None,
-    Left,
-    Right,
-    Up,
-    Down
-};
+class TileSpecPrivate;
 
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 8, 0))
-    Q_ENUM_NS(MoveDirection)
-#else
-    Q_ENUMS(MoveDirection)
-#endif
+class TileSpec final
+{
+public:
+    TileSpec(int id, int cell, int value);
+
+    int id() const;
+    int cell() const;
+    int value() const;
+
+private:
+    std::shared_ptr<TileSpecPrivate> d;
+};
 
 } // namespace Internal
 } // namespace Game
 
-#endif // MOVEDIRECTION_H
+#endif // TILESPEC_H

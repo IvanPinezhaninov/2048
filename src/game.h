@@ -32,6 +32,7 @@ QT_END_NAMESPACE
 
 #include <memory>
 
+#include "gamestate.h"
 #include "movedirection.h"
 
 
@@ -40,7 +41,6 @@ namespace Internal {
 
 class Cell;
 class GamePrivate;
-class GameboardSize;
 
 using Cell_ptr = std::shared_ptr<Cell>;
 
@@ -49,18 +49,11 @@ class Game final : public QObject
 {
     Q_OBJECT
 public:
-    enum class GameState : quint8
-    {
-        Play,
-        Win,
-        Defeat,
-        Continue
-    };
-
     explicit Game(QQmlApplicationEngine *qmlEngine, QObject *parent = nullptr);
     ~Game();
 
     bool init();
+    bool isReady() const;
 
     void setGeometry(const QRect &rect);
     void setGeometry(int x, int y, int w, int h);
