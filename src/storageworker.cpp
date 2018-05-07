@@ -82,7 +82,7 @@ void StorageWorker::openDatabase()
     const QString &databaseDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
 #endif
     const QString &databaseName = QString(QLatin1Literal(DATABASE_FILE_LOCATION))
-            .arg(databaseDir, QLatin1Literal(SQL_DATABASE_NAME));
+            .arg(databaseDir, QLatin1Literal(DATABASE_NAME));
 
     const QDir dir(databaseDir);
     if (!dir.exists()) {

@@ -274,16 +274,18 @@ void Game::setWindowState(Qt::WindowState state)
 }
 
 
+
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
 
 void Game::setWindowStates(Qt::WindowStates states)
 {
     Q_ASSERT(nullptr != d->m_windowQuickItem);
 
-    return d->m_windowQuickItem->setWindowStates(states);
+    d->m_windowQuickItem->setWindowStates(states);
 }
 
 #endif
+
 
 
 void Game::setScore(int score)

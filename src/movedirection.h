@@ -23,13 +23,13 @@
 #ifndef MOVEDIRECTION_H
 #define MOVEDIRECTION_H
 
-#include "namespaces.h"
+#include <QtGlobal>
 
 
 namespace Game {
 namespace Internal {
 
-enum class MoveDirection: quint8
+enum class MoveDirection : quint8
 {
     None,
     Left,
@@ -37,12 +37,6 @@ enum class MoveDirection: quint8
     Up,
     Down
 };
-
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 8, 0))
-    Q_ENUM_NS(MoveDirection)
-#else
-    Q_ENUMS(MoveDirection)
-#endif
 
 } // namespace Internal
 } // namespace Game

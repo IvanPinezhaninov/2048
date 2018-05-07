@@ -57,7 +57,7 @@ using StorageState = Internal::Storage::StorageState;
 
 namespace Internal {
 
-class GameControllerPrivate
+class GameControllerPrivate final
 {
 public:
     explicit GameControllerPrivate(GameController *parent);

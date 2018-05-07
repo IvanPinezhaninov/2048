@@ -35,7 +35,7 @@ static const char *const COLUMNS_PROPERTY_NAME = "columns";
 namespace Game {
 namespace Internal {
 
-class GameboardPrivate
+class GameboardPrivate final
 {
 public:
     GameboardPrivate(QQuickItem *gameboardQuickItem);

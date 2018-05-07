@@ -97,7 +97,7 @@ public slots:
 
     void setVisible(bool visible);
     void setWindowState(Qt::WindowState state);
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
+#if !defined Q_MOC_RUN && (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
     void setWindowStates(Qt::WindowStates states);
 #endif
 

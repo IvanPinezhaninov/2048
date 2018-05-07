@@ -23,7 +23,7 @@
 #ifndef GAMESTATE_H
 #define GAMESTATE_H
 
-#include "namespaces.h"
+#include <QtGlobal>
 
 
 namespace Game {
@@ -36,12 +36,6 @@ enum class GameState : quint8
     Defeat,
     Continue
 };
-
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 8, 0))
-    Q_ENUM_NS(GameState)
-#else
-    Q_ENUMS(GameState)
-#endif
 
 } // namespace Internal
 } // namespace Game

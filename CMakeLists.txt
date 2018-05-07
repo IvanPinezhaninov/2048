@@ -33,8 +33,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 include(GNUInstallDirs)
 include(cmake/CreateIcon.cmake)
 
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set(CMAKE_CXX_STANDARD 14)
@@ -63,7 +61,6 @@ list(APPEND CMAKE_CXX_FLAGS
 list(REMOVE_DUPLICATES CMAKE_CXX_FLAGS)
 
 set(HEADERS
-    src/namespaces.h
     src/cell.h
     src/tile.h
     src/gameboard.h
@@ -73,6 +70,16 @@ set(HEADERS
     src/movedirection.h
     src/tilespec.h
     src/gamespec.h
+    src/storage.h
+    src/storageworker.h
+)
+
+SET(MOC_HEADERS
+    src/cell.h
+    src/tile.h
+    src/gameboard.h
+    src/game.h
+    src/gamecontroller.h
     src/storage.h
     src/storageworker.h
 )
@@ -93,6 +100,10 @@ set(SOURCES
 set(RESOURCES
     resources.qrc
 )
+
+qt5_wrap_cpp(SOURCES ${MOC_HEADERS})
+qt5_add_resources(SOURCES ${RESOURCES})
+
 
 set(TARGET 2048)
 

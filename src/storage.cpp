@@ -35,7 +35,7 @@ namespace Internal {
 using StorageState = Storage::StorageState;
 using TileSpecs = QList<TileSpec>;
 
-class StoragePrivate
+class StoragePrivate final
 {
 public:
     explicit StoragePrivate(Storage *parent);
