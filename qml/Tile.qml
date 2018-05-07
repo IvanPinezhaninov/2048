@@ -55,7 +55,7 @@ Rectangle {
     }
 
     Behavior on x {
-        enabled: tile.value !== 0
+        enabled: 0 < tile.value
         NumberAnimation {
             duration: moveAnimationDuration
             easing.type: Easing.InOutQuad
@@ -64,7 +64,7 @@ Rectangle {
     }
 
     Behavior on y {
-        enabled: tile.value !== 0
+        enabled: 0 < tile.value
         NumberAnimation {
             duration: moveAnimationDuration
             easing.type: Easing.InOutQuad
