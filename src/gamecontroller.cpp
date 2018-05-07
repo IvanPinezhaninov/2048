@@ -615,21 +615,25 @@ void GameController::onTileMoveFinished()
         if (win) {
             d->m_game->setGameState(GameState::Win);
             win = false;
-            return;
+        } else {
+            d->createRandomTile();
         }
 
-        d->createRandomTile();
+        bool moveBlocked = true;
 
         if (d->isDefeat()) {
             d->m_game->setGameState(GameState::Defeat);
-            return;
+        } else {
+            moveBlocked = false;
         }
 
         if (StorageState::Ready == d->m_storage->state()) {
             d->saveTurn();
         }
 
-        d->setMoveBlocked(false);
+        if (!moveBlocked) {
+            d->setMoveBlocked(false);
+        }
     }
 }
 
@@ -712,14 +716,19 @@ void GameController::restoreGame()
     Q_ASSERT(!d->m_restoredTiles.isEmpty());
 
     GameState gameState = GameState::Play;
-
     const bool animation = d->useStartTilesAnimation();
+
     for (const auto &tile : d->m_restoredTiles) {
         d->createTile(tile.id(), tile.cell(), tile.value(), animation);
         if (WINNING_VALUE == tile.value()) {
             gameState = GameState::Continue;
         }
     }
+
+    if (d->isDefeat()) {
+        gameState = GameState::Defeat;
+    }
+
     d->m_restoredTiles.clear();
     d->m_game->setGameState(gameState);
     d->setMoveBlocked(false);
