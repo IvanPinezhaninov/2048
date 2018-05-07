@@ -31,6 +31,7 @@ namespace Internal {
 
 enum class GameState : quint8
 {
+    Init,
     Play,
     Win,
     Defeat,

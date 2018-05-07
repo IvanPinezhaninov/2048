@@ -29,7 +29,8 @@ Rectangle {
     property string text: 'Score'
     property int value: 0
     property int previousValue: 0
-    property bool valueAnimation: false
+    property bool valueAnimationEnabled: false
+    property bool widthAnimationEnabled: true
     readonly property var locale: Qt.locale()
 
     height: 55
@@ -38,6 +39,7 @@ Rectangle {
     color: '#bbada0'
 
     Behavior on width {
+        enabled: widthAnimationEnabled
         NumberAnimation { duration: 50; easing.type: Easing.InOutQuad }
     }
 
@@ -110,7 +112,7 @@ Rectangle {
     onValueChanged: {
         var diff = value - previousValue
         previousValue = value
-        if (valueAnimation && 0 < diff) {
+        if (valueAnimationEnabled && 0 < diff) {
             animatedText.text = '+' + Number(diff).toLocaleString(locale, 'f', 0)
             animation.restart()
         }

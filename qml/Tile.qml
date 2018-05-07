@@ -116,6 +116,12 @@ Rectangle {
 
     states: [
         State {
+            name: 'static'
+            when: tile.value === -1
+            PropertyChanges { target: tile; visible: false }
+        },
+
+        State {
             name: 'orphaned'
             when: tile.value === 0
             PropertyChanges { target: tile; visible: false }
@@ -232,6 +238,13 @@ Rectangle {
     ]
 
     transitions: [
+        Transition {
+            from: 'static'
+            to: '*'
+            PropertyAction { target: scaleAnimation; property: 'running'; value: false }
+            PropertyAction { target: bounceAnimation; property: 'running'; value: false }
+        },
+
         Transition {
             from: 'orphaned'
             to: '*'

@@ -33,9 +33,15 @@ Item {
     signal startNewGameRequested
 
     objectName: 'Game'
-    state: 'play'
+    state: 'init'
 
     states: [
+        State {
+            name: 'init'
+            PropertyChanges { target: scoreLabel; valueAnimationEnabled: false; widthAnimationEnabled: false }
+            PropertyChanges { target: bestScoreLabel; widthAnimationEnabled: false }
+        },
+
         State {
             name: 'play'
         },
@@ -78,8 +84,8 @@ Item {
         anchors.rightMargin: 5
         anchors.verticalCenter: bestScoreLabel.verticalCenter
         width: 90
-        valueAnimation: true
         text: qsTr('SCORE')
+        valueAnimationEnabled: true
     }
 
     ScoreLabel {

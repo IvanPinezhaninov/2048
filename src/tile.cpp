@@ -37,12 +37,16 @@ static const char *const VALUE_PROPERTY_NAME = "value";
 namespace Game {
 namespace Internal {
 
-Tile::Tile(int id, QQmlComponent *tileQmlComponent, QQuickItem *parent) :
+Tile::Tile(int id, QQmlComponent *tileQmlComponent, QQuickItem *parent, bool animation) :
     QObject(parent),
     m_tileQuickItem(qobject_cast<QQuickItem*>(tileQmlComponent->create())),
     m_id(id),
     m_value(0)
 {
+    if (!animation) {
+        m_tileQuickItem->setProperty(VALUE_PROPERTY_NAME, -1);
+    }
+
     m_tileQuickItem->setParentItem(parent);
     connect(m_tileQuickItem.get(), SIGNAL(moveFinished()), this, SLOT(onMoveFinished()));
 }

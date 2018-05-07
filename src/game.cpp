@@ -37,6 +37,7 @@ static const char *const GAME_STATE_PROPERTY_NAME = "state";
 static const char *const SCORE_PROPERTY_NAME = "score";
 static const char *const BEST_SCORE_PROPERTY_NAME = "bestScore";
 
+static const char *const INIT_GAME_STATE_NAME = "init";
 static const char *const PLAY_GAME_STATE_NAME = "play";
 static const char *const WIN_GAME_STATE_NAME = "win";
 static const char *const DEFEAT_GAME_STATE_NAME = "defeat";
@@ -51,7 +52,7 @@ class GamePrivate final
 public:
     GamePrivate(Game *parent, QQmlApplicationEngine *qmlEngine);
 
-    bool processEnterKeyPressed();
+    void processEnterKeyPressed();
 
     Game *const q;
     QQmlApplicationEngine *const m_qmlEngine;
@@ -72,23 +73,23 @@ GamePrivate::GamePrivate(Game *parent, QQmlApplicationEngine *qmlEngine) :
     m_gameQuickItem(nullptr),
     m_score(0),
     m_bestScore(0),
-    m_gameState(GameState::Play),
+    m_gameState(GameState::Init),
     m_ready(false)
 {
 }
 
 
-bool GamePrivate::processEnterKeyPressed()
+void GamePrivate::processEnterKeyPressed()
 {
     switch (m_gameState) {
     case GameState::Win:
         emit q->continueGameRequested();
-        return true;
+        break;
     case GameState::Defeat:
         emit q->startNewGameRequested();
-        return true;
+        break;
     default:
-        return false;
+        break;
     }
 }
 
@@ -332,6 +333,9 @@ void Game::setGameState(GameState state)
         QString stateName;
 
         switch (state) {
+        case GameState::Init:
+            stateName = QLatin1Literal(INIT_GAME_STATE_NAME);
+            break;
         case GameState::Play:
             stateName = QLatin1Literal(PLAY_GAME_STATE_NAME);
             break;
@@ -361,21 +365,19 @@ bool Game::eventFilter(QObject *object, QEvent *event)
         switch (keyEvent->key()) {
         case Qt::Key_Left:
             emit moveTilesRequested(MoveDirection::Left);
-            return true;
+            break;
         case Qt::Key_Right:
             emit moveTilesRequested(MoveDirection::Right);
-            return true;
+            break;
         case Qt::Key_Up:
             emit moveTilesRequested(MoveDirection::Up);
-            return true;
+            break;
         case Qt::Key_Down:
             emit moveTilesRequested(MoveDirection::Down);
-            return true;
+            break;
         case Qt::Key_Enter:
         case Qt::Key_Return:
-            if (d->processEnterKeyPressed()) {
-                return true;
-            }
+            d->processEnterKeyPressed();
             break;
         default:
             break;

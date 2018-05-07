@@ -60,6 +60,8 @@ private slots:
     void onCreateGameError();
     void onGameRestored(const Internal::GameSpec &gameSpec);
     void onRestoreGameError();
+    void startNewGame();
+    void restoreGame();
 
 private:
     Q_DISABLE_COPY(GameController)
