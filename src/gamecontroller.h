@@ -58,8 +58,6 @@ private slots:
     void onStorageError();
     void onGameCreated();
     void onCreateGameError();
-    void onGameSaved();
-    void onSaveGameError();
     void onGameRestored(const Internal::GameSpec &gameSpec);
     void onRestoreGameError();
 

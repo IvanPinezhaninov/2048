@@ -44,7 +44,6 @@ class Cell final : public QObject, public std::enable_shared_from_this<Cell>
     Q_OBJECT
 public:
     Cell(int index, QQuickItem *cellQuickItem, QObject *parent = nullptr);
-    ~Cell();
 
     int index() const;
     Tile_ptr tile() const;

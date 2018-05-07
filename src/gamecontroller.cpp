@@ -464,7 +464,7 @@ void GameControllerPrivate::restoreGame(const GameSpec &gameSpec)
     m_game->setScore(gameSpec.score());
     m_game->setBestScore(gameSpec.bestScore());
 
-    for (auto tile : gameSpec.tiles()) {
+    for (const auto &tile : gameSpec.tiles()) {
         createTile(tile.id(), tile.cell(), tile.value());
         if (WINNING_VALUE == tile.value()) {
             m_game->setGameState(GameState::Continue);
@@ -481,7 +481,7 @@ void GameControllerPrivate::restoreGame(const GameSpec &gameSpec)
 void GameControllerPrivate::saveTurn()
 {
     QList<TileSpec> tiles;
-    for (auto tile : m_tiles) {
+    for (const auto &tile : m_tiles) {
         tiles.append({ tile->id(), tile->cell()->index(), tile->value() });
     }
 
@@ -492,21 +492,16 @@ void GameControllerPrivate::saveTurn()
 void GameControllerPrivate::startNewGame()
 {
     m_game->setScore(0);
+    m_game->setGameState(GameState::Play);
     m_moveDirection = MoveDirection::None;
     clearTiles();
     createStartTiles();
 
-    switch (m_storage->state()) {
-    case StorageState::Ready:
+    if (StorageState::Ready == m_storage->state()) {
         saveTurn();
-        break;
-    case StorageState::Error:
-        setMoveBlocked(false);
-        break;
-    case StorageState::NotReady:
-        Q_ASSERT(false);
-        break;
     }
+
+    setMoveBlocked(false);
 
     if (!m_game->isVisible()) {
         m_game->show();
@@ -519,17 +514,11 @@ void GameControllerPrivate::continueGame()
     m_game->setGameState(GameState::Continue);
     createRandomTile();
 
-    switch (m_storage->state()) {
-    case StorageState::Ready:
+    if (StorageState::Ready == m_storage->state()) {
         saveTurn();
-        break;
-    case StorageState::Error:
-        setMoveBlocked(false);
-        break;
-    case StorageState::NotReady:
-        Q_ASSERT(false);
-        break;
     }
+
+    setMoveBlocked(false);
 }
 
 
@@ -578,8 +567,6 @@ GameController::GameController(QObject *parent) :
     connect(d->m_storage.get(), &Game::Internal::Storage::storageError, this, &GameController::onStorageError);
     connect(d->m_storage.get(), &Game::Internal::Storage::gameCreated, this, &GameController::onGameCreated);
     connect(d->m_storage.get(), &Game::Internal::Storage::createGameError, this, &GameController::onCreateGameError);
-    connect(d->m_storage.get(), &Game::Internal::Storage::gameSaved, this, &GameController::onGameSaved);
-    connect(d->m_storage.get(), &Game::Internal::Storage::saveGameError, this, &GameController::onSaveGameError);
     connect(d->m_storage.get(), &Game::Internal::Storage::gameRestored, this, &GameController::onGameRestored);
     connect(d->m_storage.get(), &Game::Internal::Storage::restoreGameError, this, &GameController::onRestoreGameError);
 }
@@ -678,18 +665,11 @@ void GameController::onTileMoveFinished()
             return;
         }
 
-
-        switch (d->m_storage->state()) {
-        case StorageState::Ready:
+        if (StorageState::Ready == d->m_storage->state()) {
             d->saveTurn();
-            break;
-        case StorageState::Error:
-            d->setMoveBlocked(false);
-            break;
-        case StorageState::NotReady:
-            Q_ASSERT(false);
-            break;
         }
+
+        d->setMoveBlocked(false);
     }
 }
 
@@ -719,18 +699,6 @@ void GameController::onGameCreated()
 void GameController::onCreateGameError()
 {
     d->startNewGame();
-}
-
-
-void GameController::onGameSaved()
-{
-    d->setMoveBlocked(false);
-}
-
-
-void GameController::onSaveGameError()
-{
-    d->setMoveBlocked(false);
 }
 
 

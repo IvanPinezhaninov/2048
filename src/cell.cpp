@@ -43,11 +43,6 @@ Cell::Cell(int index, QQuickItem *cellQuickItem, QObject *parent) :
 }
 
 
-Cell::~Cell()
-{
-}
-
-
 int Cell::index() const
 {
     return m_index;
