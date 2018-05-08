@@ -71,10 +71,15 @@ private:
 
     int databaseVersion();
     bool createDatabase();
+    bool executeQuery(const QString &query, QString &error);
     bool executeFileQueries(const QString &fileName);
 
     bool saveTiles(const TileSpecs &tiles);
     bool restoreTiles(TileSpecs &tiles);
+
+    void clearTurns();
+    void clearTiles();
+    void vacuum();
 
     int gameStateToInt(GameState gameState) const;
     GameState gameStateFromInt(int value) const;

@@ -188,8 +188,14 @@ void StorageWorker::createGame(int rows, int columns)
         return;
     }
 
+    clearTiles();
+    clearTurns();
+
     m_db.commit();
     m_turnId = FIRST_TURN_ID;
+
+    vacuum();
+
     emit gameCreated();
 }
 
@@ -348,20 +354,20 @@ void StorageWorker::restoreGame()
 
 int StorageWorker::databaseVersion()
 {
-    QSqlQuery query(m_db);
+    QSqlQuery sqlQuery(m_db);
 
-    if (!query.exec(QLatin1Literal("PRAGMA user_version"))) {
-        qWarning() << "Failed to get database version:" << qPrintable(query.lastError().text());
+    if (!sqlQuery.exec(QLatin1Literal("PRAGMA user_version"))) {
+        qWarning() << "Failed to get database version:" << qPrintable(sqlQuery.lastError().text());
         return WRONG_DATABASE_VERSION;
     }
 
-    if (!query.first()) {
+    if (!sqlQuery.first()) {
         qWarning() << "Failed to get database version: database version not found";
         return WRONG_DATABASE_VERSION;
     }
 
     bool ok = false;
-    const int version = query.value(0).toInt(&ok);
+    const int version = sqlQuery.value(0).toInt(&ok);
 
     if (!ok) {
         qWarning() << "Failed to get database version: incorrect database version";
@@ -389,6 +395,19 @@ bool StorageWorker::createDatabase()
 
     m_db.commit();
     return true;
+}
+
+
+bool StorageWorker::executeQuery(const QString &query, QString &error)
+{
+    QSqlQuery sqlQuery(m_db);
+
+    if (sqlQuery.exec(query)) {
+        return true;
+    }
+
+    error = sqlQuery.lastError().text();
+    return false;
 }
 
 
@@ -499,6 +518,33 @@ bool StorageWorker::restoreTiles(TileSpecs &tiles)
     } while (sqlQuery.next());
 
     return true;
+}
+
+
+void StorageWorker::clearTurns()
+{
+    QString error;
+    if (!executeQuery(QLatin1Literal("DELETE FROM turns"), error)) {
+        qWarning() << "Failed to execute clear turns query" << qPrintable(error);
+    }
+}
+
+
+void StorageWorker::clearTiles()
+{
+    QString error;
+    if (!executeQuery(QLatin1Literal("DELETE FROM tiles"), error)) {
+        qWarning() << "Failed to execute clear tiles query:" << qPrintable(error);
+    }
+}
+
+
+void StorageWorker::vacuum()
+{
+    QString error;
+    if (!executeQuery(QLatin1Literal("VACUUM"), error)) {
+        qWarning() << "Failed to execute vacuum query:" << qPrintable(error);
+    }
 }
 
 
