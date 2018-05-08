@@ -55,9 +55,13 @@ static const int WINNING_VALUE = 2048;
 
 namespace Game {
 
+using Game = Internal::Game;
+using GameSpec = Internal::GameSpec;
 using GameState = Internal::GameState;
 using MoveDirection = Internal::MoveDirection;
+using Storage = Internal::Storage;
 using StorageState = Internal::Storage::StorageState;
+using Tile = Internal::Tile;
 
 namespace Internal {
 
@@ -512,16 +516,16 @@ GameController::GameController(QObject *parent) :
     QObject(parent),
     d(std::make_unique<Internal::GameControllerPrivate>(this))
 {
-    connect(d->m_game.get(), &Game::Internal::Game::gameReady, this, &GameController::onGameReady);
-    connect(d->m_game.get(), &Game::Internal::Game::moveTilesRequested, this, &GameController::onMoveTilesRequested);
-    connect(d->m_game.get(), &Game::Internal::Game::startNewGameRequested, this, &GameController::onStartNewGameRequested);
-    connect(d->m_game.get(), &Game::Internal::Game::continueGameRequested, this, &GameController::onContinueGameRequested);
-    connect(d->m_storage.get(), &Game::Internal::Storage::storageReady, this, &GameController::onStorageReady);
-    connect(d->m_storage.get(), &Game::Internal::Storage::storageError, this, &GameController::onStorageError);
-    connect(d->m_storage.get(), &Game::Internal::Storage::gameCreated, this, &GameController::onGameCreated);
-    connect(d->m_storage.get(), &Game::Internal::Storage::createGameError, this, &GameController::onCreateGameError);
-    connect(d->m_storage.get(), &Game::Internal::Storage::gameRestored, this, &GameController::onGameRestored);
-    connect(d->m_storage.get(), &Game::Internal::Storage::restoreGameError, this, &GameController::onRestoreGameError);
+    connect(d->m_game.get(), &Game::gameReady, this, &GameController::onGameReady);
+    connect(d->m_game.get(), &Game::moveTilesRequested, this, &GameController::onMoveTilesRequested);
+    connect(d->m_game.get(), &Game::startNewGameRequested, this, &GameController::onStartNewGameRequested);
+    connect(d->m_game.get(), &Game::continueGameRequested, this, &GameController::onContinueGameRequested);
+    connect(d->m_storage.get(), &Storage::storageReady, this, &GameController::onStorageReady);
+    connect(d->m_storage.get(), &Storage::storageError, this, &GameController::onStorageError);
+    connect(d->m_storage.get(), &Storage::gameCreated, this, &GameController::onGameCreated);
+    connect(d->m_storage.get(), &Storage::createGameError, this, &GameController::onCreateGameError);
+    connect(d->m_storage.get(), &Storage::gameRestored, this, &GameController::onGameRestored);
+    connect(d->m_storage.get(), &Storage::restoreGameError, this, &GameController::onRestoreGameError);
 }
 
 
@@ -580,9 +584,9 @@ void GameController::onContinueGameRequested()
 }
 
 
-void GameController::onMoveTilesRequested(Internal::MoveDirection direction)
+void GameController::onMoveTilesRequested(MoveDirection direction)
 {
-    Q_ASSERT(Internal::MoveDirection::None != direction);
+    Q_ASSERT(MoveDirection::None != direction);
 
     d->m_moveDirection = direction;
     d->moveTiles();
@@ -593,7 +597,6 @@ void GameController::onTileMoveFinished()
 {
     Q_ASSERT(d->m_movingTilesCount >= 0);
 
-    using Tile = Internal::Tile;
     static bool win = false;
 
     Tile *tile = q_check_ptr(qobject_cast<Tile*>(sender()));
@@ -668,7 +671,7 @@ void GameController::onCreateGameError()
 }
 
 
-void GameController::onGameRestored(const Internal::GameSpec &gameSpec)
+void GameController::onGameRestored(const GameSpec &gameSpec)
 {
     Q_ASSERT(GameState::Init == d->m_game->gameState());
     Q_ASSERT(0 < gameSpec.rows() && 0 < gameSpec.columns());

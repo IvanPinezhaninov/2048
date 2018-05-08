@@ -34,8 +34,10 @@ int main(int argc, char *argv[])
     app.setOrganizationName(QLatin1Literal(ORGANIZATION_NAME));
     app.setApplicationName(QLatin1Literal(APPLICATION_NAME));
 
-    Game::GameController gameController;
-    QObject::connect(&app, &QGuiApplication::lastWindowClosed, &gameController, &Game::GameController::shutdown);
+    using GameController = Game::GameController;
+
+    GameController gameController;
+    QObject::connect(&app, &QGuiApplication::lastWindowClosed, &gameController, &GameController::shutdown);
 
     if (!gameController.init()) {
         return EXIT_FAILURE;
