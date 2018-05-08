@@ -40,7 +40,8 @@ Item {
     Text {
         id: text
 
-        x: defeatScreen.width / 2 - text.paintedWidth / 2
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.horizontalCenter: parent.horizontalCenter
         font.family: Constants.fontFamily
         font.pixelSize: 60
         font.weight: Font.Bold
@@ -52,8 +53,8 @@ Item {
     Button {
         id: tryAgainButton
 
-        anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: text.bottom
+        anchors.horizontalCenter: parent.horizontalCenter
         anchors.topMargin: 10
         opacity: 0.0
         text: qsTr('Try again')
@@ -86,9 +87,9 @@ Item {
         ParallelAnimation {
             PropertyAnimation {
                 target: text
-                property: 'y'
-                from: defeatScreen.height * 0.8
-                to: defeatScreen.height * 0.32
+                property: 'anchors.verticalCenterOffset'
+                from: parent.height * 0.5 + text.font.pixelSize * 0.5
+                to: text.font.pixelSize * -0.65
                 duration: 1500
                 easing.type: Easing.OutBack
             }
