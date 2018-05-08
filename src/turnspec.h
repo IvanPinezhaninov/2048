@@ -20,8 +20,8 @@
 ***************************************************************************/
 
 
-#ifndef GAMESPEC_H
-#define GAMESPEC_H
+#ifndef TURNSPEC_H
+#define TURNSPEC_H
 
 #include <memory>
 
@@ -29,24 +29,23 @@
 #include <QMetaType>
 
 #include "gamestate.h"
+#include "movedirection.h"
 
 
 namespace Game {
 namespace Internal {
 
-class GameSpecPrivate;
 class TileSpec;
+class TurnSpecPrivate;
 
-class GameSpec final
+class TurnSpec final
 {
 public:
-    GameSpec();
-    GameSpec(int rows, int columns, GameState gameState,
+    TurnSpec();
+    TurnSpec(MoveDirection moveDirection, GameState gameState,
              int score, int bestScore, const QList<TileSpec> &tiles);
 
-    int rows() const;
-    int columns() const;
-
+    MoveDirection moveDirection() const;
     GameState gameState() const;
 
     int score() const;
@@ -55,12 +54,12 @@ public:
     QList<TileSpec> tiles() const;
 
 private:
-    std::shared_ptr<GameSpecPrivate> d;
+    std::shared_ptr<TurnSpecPrivate> d;
 };
 
 } // namespace Internal
 } // namespace Game
 
-Q_DECLARE_METATYPE(Game::Internal::GameSpec)
+Q_DECLARE_METATYPE(Game::Internal::TurnSpec)
 
-#endif // GAMESPEC_H
+#endif // TURNSPEC_H

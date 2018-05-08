@@ -20,8 +20,9 @@
 ***************************************************************************/
 
 
-#include "storage.h"
+#include "gamespec.h"
 #include "storageworker.h"
+#include "turnspec.h"
 
 #include <QCoreApplication>
 #include <QDebug>
@@ -38,6 +39,24 @@ static const char *const DATABASE_FILE_LOCATION = "%1/../Resources/%2";
 #else
 static const char *const DATABASE_FILE_LOCATION = "%1/%2";
 #endif
+
+static const char *const GAME_ID_COLUMN_NAME = "game_id";
+static const char *const TURN_ID_COLUMN_NAME = "turn_id";
+static const char *const ROWS_COLUMN_NAME = "rows";
+static const char *const COLUMNS_COLUMN_NAME = "columns";
+static const char *const GAME_STATE_COLUMN_NAME = "game_state";
+static const char *const SCORE_COLUMN_NAME = "score";
+static const char *const BEST_SCORE_COLUMN_NAME = "best_score";
+static const char *const TILE_SPEC_ID_COLUMN_NAME = "tile_spec_id";
+static const char *const TILE_SPEC_CELL_COLUMN_NAME = "tile_spec_cell";
+static const char *const TILE_SPEC_VALUE_COLUMN_NAME = "tile_spec_value";
+
+
+static const int GAME_STATE_INIT = 0;
+static const int GAME_STATE_PLAY = 1;
+static const int GAME_STATE_WIN = 2;
+static const int GAME_STATE_DEFEAT = 3;
+static const int GAME_STATE_CONTINUE = 4;
 
 static const int MOVE_DIRECTION_NONE = 0;
 static const int MOVE_DIRECTION_LEFT = 1;
@@ -175,7 +194,7 @@ void StorageWorker::createGame(int rows, int columns)
 }
 
 
-void StorageWorker::saveTurn(MoveDirection direction, const TileSpecs &tiles, int score, int bestScore)
+void StorageWorker::saveTurn(const TurnSpec &turn)
 {
     QMutexLocker locker(&m_lock);
 
@@ -188,8 +207,9 @@ void StorageWorker::saveTurn(MoveDirection direction, const TileSpecs &tiles, in
     QSqlQuery sqlQuery(m_db);
     m_db.transaction();
 
-    const QString &query = QLatin1Literal("INSERT INTO turns (game_id, parent_turn_id, move_direction, score, best_score) "
-                                          "VALUES (?, ?, ?, ?, ?)");
+    const QString &query = QLatin1Literal("INSERT INTO turns (game_id, parent_turn_id, move_direction, "
+                                                             "game_state, score, best_score) "
+                                          "VALUES (?, ?, ?, ?, ?, ?)");
 
     if (!sqlQuery.prepare(query)) {
         qWarning() << "Failed to prepare the save game query:" << qPrintable(sqlQuery.lastError().driverText());
@@ -199,9 +219,10 @@ void StorageWorker::saveTurn(MoveDirection direction, const TileSpecs &tiles, in
 
     sqlQuery.addBindValue(m_gameId);
     sqlQuery.addBindValue(m_turnId);
-    sqlQuery.addBindValue(moveDirection(direction));
-    sqlQuery.addBindValue(score);
-    sqlQuery.addBindValue(bestScore);
+    sqlQuery.addBindValue(moveDirectionToInt(turn.moveDirection()));
+    sqlQuery.addBindValue(gameStateToInt(turn.gameState()));
+    sqlQuery.addBindValue(turn.score());
+    sqlQuery.addBindValue(turn.bestScore());
 
     if (!sqlQuery.exec()) {
         qWarning() << "Failed to execute the save game query:" << qPrintable(sqlQuery.lastError().driverText());
@@ -218,7 +239,7 @@ void StorageWorker::saveTurn(MoveDirection direction, const TileSpecs &tiles, in
         return;
     }
 
-    if (!saveTiles(tiles)) {
+    if (!saveTiles(turn.tiles())) {
         handleSaveGameError();
         return;
     }
@@ -235,8 +256,8 @@ void StorageWorker::restoreGame()
     QSqlQuery sqlQuery(m_db);
     m_db.transaction();
 
-    const QString &query = QLatin1Literal("SELECT games.game_id, games.rows, games.columns, "
-                                                 "turns.turn_id, turns.score, turns.best_score "
+    const QString &query = QLatin1Literal("SELECT games.game_id, games.rows, games.columns, turns.turn_id, "
+                                                 "turns.game_state, turns.score, turns.best_score "
                                           "FROM turns "
                                           "LEFT JOIN games ON games.game_id = turns.game_id "
                                           "ORDER BY turns.turn_id DESC LIMIT 1");
@@ -261,42 +282,52 @@ void StorageWorker::restoreGame()
 
     bool ok = false;
 
-    m_gameId = sqlQuery.value(0).toInt(&ok);
+    m_gameId = sqlQuery.value(QLatin1Literal(GAME_ID_COLUMN_NAME)).toInt(&ok);
     if (!ok) {
         qWarning() << "Failed to get the game id of the restored game";
         handleRestoreGameError();
         return;
     }
 
-    const int rows = sqlQuery.value(1).toInt(&ok);
+    const int rows = sqlQuery.value(QLatin1Literal(ROWS_COLUMN_NAME)).toInt(&ok);
     if (!ok) {
         qWarning() << "Failed to get the rows count of the restored game";
         handleRestoreGameError();
         return;
     }
 
-    const int columns = sqlQuery.value(2).toInt(&ok);
+    const int columns = sqlQuery.value(QLatin1Literal(COLUMNS_COLUMN_NAME)).toInt(&ok);
     if (!ok) {
         qWarning() << "Failed to get the columns count of the restored game";
         handleRestoreGameError();
         return;
     }
 
-    m_turnId = sqlQuery.value(3).toInt(&ok);
+    m_turnId = sqlQuery.value(QLatin1Literal(TURN_ID_COLUMN_NAME)).toInt(&ok);
     if (!ok) {
         qWarning() << "Failed to get the turn id of the restored game";
         handleRestoreGameError();
         return;
     }
 
-    const int score = sqlQuery.value(4).toInt(&ok);
+    const int gameStateValue = sqlQuery.value(QLatin1Literal(GAME_STATE_COLUMN_NAME)).toInt(&ok);
+    GameState gameState = GameState::Init;
+    if (ok) {
+        gameState = gameStateFromInt(gameStateValue);
+    } else {
+        qWarning() << "Failed to get the game state of the restored game";
+        handleRestoreGameError();
+        return;
+    }
+
+    const int score = sqlQuery.value(QLatin1Literal(SCORE_COLUMN_NAME)).toInt(&ok);
     if (!ok) {
         qWarning() << "Failed to get the score of the restored game";
         handleRestoreGameError();
         return;
     }
 
-    const int bestScore = sqlQuery.value(5).toInt(&ok);
+    const int bestScore = sqlQuery.value(QLatin1Literal(BEST_SCORE_COLUMN_NAME)).toInt(&ok);
     if (!ok) {
         qWarning() << "Failed to get the best score of the restored game";
         handleRestoreGameError();
@@ -311,7 +342,7 @@ void StorageWorker::restoreGame()
     }
 
     m_db.commit();
-    emit gameRestored({ rows, columns, score, bestScore, tiles });
+    emit gameRestored({ rows, columns, gameState, score, bestScore, tiles });
 }
 
 
@@ -446,19 +477,19 @@ bool StorageWorker::restoreTiles(TileSpecs &tiles)
     bool ok = false;
 
     do {
-        const int id = sqlQuery.value(0).toInt(&ok);
+        const int id = sqlQuery.value(QLatin1Literal(TILE_SPEC_ID_COLUMN_NAME)).toInt(&ok);
         if (!ok) {
             qWarning() << "Failed to get the tile id of the restored tile";
             return false;
         }
 
-        const int cell = sqlQuery.value(1).toInt(&ok);
+        const int cell = sqlQuery.value(QLatin1Literal(TILE_SPEC_CELL_COLUMN_NAME)).toInt(&ok);
         if (!ok) {
             qWarning() << "Failed to get the cell index of the restored tile";
             return false;
         }
 
-        const int value = sqlQuery.value(2).toInt(&ok);
+        const int value = sqlQuery.value(QLatin1Literal(TILE_SPEC_VALUE_COLUMN_NAME)).toInt(&ok);
         if (!ok) {
             qWarning() << "Failed to get the tile value of the restored tile";
             return false;
@@ -471,9 +502,43 @@ bool StorageWorker::restoreTiles(TileSpecs &tiles)
 }
 
 
-int StorageWorker::moveDirection(MoveDirection direction) const
+int StorageWorker::gameStateToInt(GameState gameState) const
 {
-    switch (direction) {
+    switch (gameState) {
+    case GameState::Init:
+        return GAME_STATE_INIT;
+    case GameState::Play:
+        return GAME_STATE_PLAY;
+    case GameState::Win:
+        return GAME_STATE_WIN;
+    case GameState::Defeat:
+        return GAME_STATE_DEFEAT;
+    case GameState::Continue:
+        return GAME_STATE_CONTINUE;
+    }
+}
+
+
+GameState StorageWorker::gameStateFromInt(int value) const
+{
+    switch (value) {
+    case GAME_STATE_PLAY:
+        return GameState::Play;
+    case GAME_STATE_WIN:
+        return GameState::Win;
+    case GAME_STATE_DEFEAT:
+        return GameState::Defeat;
+    case GAME_STATE_CONTINUE:
+        return GameState::Continue;
+    default:
+        return GameState::Init;
+    }
+}
+
+
+int StorageWorker::moveDirectionToInt(MoveDirection moveDirection) const
+{
+    switch (moveDirection) {
     case MoveDirection::None:
         return MOVE_DIRECTION_NONE;
     case MoveDirection::Left:
@@ -484,6 +549,23 @@ int StorageWorker::moveDirection(MoveDirection direction) const
         return MOVE_DIRECTION_UP;
     case MoveDirection::Down:
         return MOVE_DIRECTION_DOWN;
+    }
+}
+
+
+MoveDirection StorageWorker::moveDirectionFromInt(int value) const
+{
+    switch (value) {
+    case MOVE_DIRECTION_LEFT:
+        return MoveDirection::Left;
+    case MOVE_DIRECTION_RIGHT:
+        return MoveDirection::Right;
+    case MOVE_DIRECTION_UP:
+        return MoveDirection::Up;
+    case MOVE_DIRECTION_DOWN:
+        return MoveDirection::Down;
+    default:
+        return MoveDirection::None;
     }
 }
 

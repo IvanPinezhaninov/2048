@@ -69,6 +69,7 @@ set(HEADERS
     src/gamestate.h
     src/movedirection.h
     src/tilespec.h
+    src/turnspec.h
     src/gamespec.h
     src/storage.h
     src/storageworker.h
@@ -91,6 +92,7 @@ set(SOURCES
     src/game.cpp
     src/gamecontroller.cpp
     src/tilespec.cpp
+    src/turnspec.cpp
     src/gamespec.cpp
     src/storage.cpp
     src/storageworker.cpp

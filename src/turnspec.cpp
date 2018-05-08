@@ -20,92 +20,84 @@
 ***************************************************************************/
 
 
-#include "gamespec.h"
 #include "tilespec.h"
+#include "turnspec.h"
 
 
 namespace Game {
 namespace Internal {
 
-class GameSpecPrivate
+class TurnSpecPrivate
 {
 public:
-    GameSpecPrivate(int rows, int columns, GameState gameState,
+    TurnSpecPrivate(MoveDirection moveDirection, GameState gameState,
                     int score, int bestScore, const QList<TileSpec> &tiles);
-    ~GameSpecPrivate();
+    ~TurnSpecPrivate();
 
-    int m_rows;
-    int m_columns;
     int m_score;
     int m_bestScore;
     QList<TileSpec> m_tiles;
+    MoveDirection m_moveDirection;
     GameState m_gameState;
 };
 
 
-GameSpecPrivate::GameSpecPrivate(int rows, int columns, GameState gameState,
+TurnSpecPrivate::TurnSpecPrivate(MoveDirection moveDirection, GameState gameState,
                                  int score, int bestScore, const QList<TileSpec> &tiles) :
-    m_rows(rows),
-    m_columns(columns),
     m_score(score),
     m_bestScore(bestScore),
     m_tiles(tiles),
+    m_moveDirection(moveDirection),
     m_gameState(gameState)
 {
 }
 
 
-GameSpecPrivate::~GameSpecPrivate()
+TurnSpecPrivate::~TurnSpecPrivate()
 {
 }
 
 
-GameSpec::GameSpec() :
-    GameSpec(0, 0, GameState::Init, 0, 0, {})
+TurnSpec::TurnSpec() :
+    TurnSpec(MoveDirection::None, GameState::Init, 0, 0, {})
 {
 }
 
 
-GameSpec::GameSpec(int rows, int columns, GameState gameState,
+TurnSpec::TurnSpec(MoveDirection moveDirection, GameState gameState,
                    int score, int bestScore, const QList<TileSpec> &tiles) :
-    d(std::make_shared<GameSpecPrivate>(rows, columns, gameState, score, bestScore, tiles))
+    d(std::make_shared<TurnSpecPrivate>(moveDirection, gameState, score, bestScore, tiles))
 {
 }
 
 
-int GameSpec::rows() const
+MoveDirection TurnSpec::moveDirection() const
 {
-    return d->m_rows;
+    return d->m_moveDirection;
 }
 
 
-int GameSpec::columns() const
+GameState TurnSpec::gameState() const
 {
-    return d->m_columns;
+    return d->m_gameState;
 }
 
 
-int GameSpec::score() const
+int TurnSpec::score() const
 {
     return d->m_score;
 }
 
 
-int GameSpec::bestScore() const
+int TurnSpec::bestScore() const
 {
     return d->m_bestScore;
 }
 
 
-QList<TileSpec> GameSpec::tiles() const
+QList<TileSpec> TurnSpec::tiles() const
 {
     return d->m_tiles;
-}
-
-
-GameState GameSpec::gameState() const
-{
-    return d->m_gameState;
 }
 
 } // namespace Internal

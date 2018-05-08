@@ -471,7 +471,7 @@ void GameControllerPrivate::saveTurn()
         tiles.append({ tile->id(), tile->cell()->index(), tile->value() });
     }
 
-    m_storage->saveTurn(m_moveDirection, tiles, m_game->score(), m_game->bestScore());
+    m_storage->saveTurn({ m_moveDirection, m_game->gameState(), m_game->score(), m_game->bestScore(), tiles });
 }
 
 
@@ -670,6 +670,7 @@ void GameController::onCreateGameError()
 
 void GameController::onGameRestored(const Internal::GameSpec &gameSpec)
 {
+    Q_ASSERT(GameState::Init == d->m_game->gameState());
     Q_ASSERT(0 < gameSpec.rows() && 0 < gameSpec.columns());
     Q_ASSERT(!gameSpec.tiles().isEmpty());
     Q_ASSERT(!d->m_game->isVisible());
@@ -678,6 +679,7 @@ void GameController::onGameRestored(const Internal::GameSpec &gameSpec)
     d->setGameboardSize(gameSpec.rows(), gameSpec.columns());
     d->m_game->setScore(gameSpec.score());
     d->m_game->setBestScore(gameSpec.bestScore());
+    d->m_game->setGameState(gameSpec.gameState());
     d->m_game->show();
 
     const int timeout = d->useStartTilesAnimation() ? SHOW_START_TILES_DELAY : 0;
@@ -712,25 +714,30 @@ void GameController::startNewGame()
 
 void GameController::restoreGame()
 {
-    Q_ASSERT(GameState::Init == d->m_game->gameState());
     Q_ASSERT(!d->m_restoredTiles.isEmpty());
 
-    GameState gameState = GameState::Play;
+    int maxValue = 0;
     const bool animation = d->useStartTilesAnimation();
 
     for (const auto &tile : d->m_restoredTiles) {
         d->createTile(tile.id(), tile.cell(), tile.value(), animation);
-        if (WINNING_VALUE == tile.value()) {
-            gameState = GameState::Continue;
+        if (maxValue < tile.value()) {
+            maxValue = tile.value();
         }
     }
 
-    if (d->isDefeat()) {
-        gameState = GameState::Defeat;
+    const GameState gameState = d->m_game->gameState();
+    const bool winOrContinue = (GameState::Continue == gameState || GameState::Win == gameState);
+
+    if (d->isDefeat() && GameState::Defeat != gameState) {
+        d->m_game->setGameState(GameState::Defeat);
+    } else if (winOrContinue && maxValue < WINNING_VALUE) {
+        d->m_game->setGameState(GameState::Play);
+    } else if (GameState::Init == gameState) {
+        d->m_game->setGameState(GameState::Play);
     }
 
     d->m_restoredTiles.clear();
-    d->m_game->setGameState(gameState);
     d->setMoveBlocked(false);
 }
 

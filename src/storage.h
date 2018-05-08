@@ -24,12 +24,13 @@
 #define STORAGE_H
 
 #include "gamespec.h"
-#include "movedirection.h"
 #include "tilespec.h"
+#include "turnspec.h"
 
 #include <memory>
 
 #include <QObject>
+
 
 namespace Game {
 namespace Internal {
@@ -64,13 +65,13 @@ signals:
     void gameSaved();
     void saveGameError();
 
-    void gameRestored(const GameSpec &gameSave);
+    void gameRestored(const GameSpec &game);
     void restoreGameError();
 
 public slots:
     void createGame(int rows, int columns);
     void restoreGame();
-    void saveTurn(MoveDirection direction, const QList<TileSpec> &tiles, int score, int bestScore);
+    void saveTurn(const TurnSpec &turn);
 
 private slots:
     void onStorageReady();

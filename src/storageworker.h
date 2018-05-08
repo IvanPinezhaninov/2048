@@ -23,20 +23,20 @@
 #ifndef STORAGEWORKER_H
 #define STORAGEWORKER_H
 
-#include "gamespec.h"
-#include "movedirection.h"
-#include "tilespec.h"
-
 #include <QMutex>
 #include <QObject>
 #include <QSqlDatabase>
+
+#include "gamestate.h"
+#include "movedirection.h"
+#include "tilespec.h"
 
 
 namespace Game {
 namespace Internal {
 
 class GameSpec;
-class TileSpec;
+class TurnSpec;
 
 using TileSpecs = QList<TileSpec>;
 
@@ -56,7 +56,7 @@ signals:
     void gameSaved();
     void saveGameError();
 
-    void gameRestored(const GameSpec &gameSave);
+    void gameRestored(const GameSpec &game);
     void restoreGameError();
 
 public slots:
@@ -64,7 +64,7 @@ public slots:
     void closeDatabase();
     void createGame(int rows, int columns);
     void restoreGame();
-    void saveTurn(MoveDirection direction, const TileSpecs &tiles, int score, int bestScore);
+    void saveTurn(const TurnSpec &turn);
 
 private:
     Q_DISABLE_COPY(StorageWorker)
@@ -76,7 +76,11 @@ private:
     bool saveTiles(const TileSpecs &tiles);
     bool restoreTiles(TileSpecs &tiles);
 
-    int moveDirection(MoveDirection direction) const;
+    int gameStateToInt(GameState gameState) const;
+    GameState gameStateFromInt(int value) const;
+
+    int moveDirectionToInt(MoveDirection moveDirection) const;
+    MoveDirection moveDirectionFromInt(int value) const;
 
     void handleCreateGameError();
     void handleSaveGameError();

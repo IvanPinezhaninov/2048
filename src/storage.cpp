@@ -59,8 +59,7 @@ StoragePrivate::StoragePrivate(Storage *parent) :
     m_state(Storage::StorageState::NotReady)
 {
     qRegisterMetaType<GameSpec>("GameSpec");
-    qRegisterMetaType<TileSpecs>("TileSpecs");
-    qRegisterMetaType<MoveDirection>("MoveDirection");
+    qRegisterMetaType<TurnSpec>("TurnSpec");
 
     m_worker->moveToThread(m_workerThread.get());
 
@@ -140,11 +139,9 @@ void Storage::restoreGame()
 }
 
 
-void Storage::saveTurn(MoveDirection direction, const QList<TileSpec> &tiles, int score, int bestScore)
+void Storage::saveTurn(const TurnSpec &turn)
 {
-    QMetaObject::invokeMethod(d->m_worker.get(), "saveTurn", Qt::QueuedConnection,
-                              Q_ARG(MoveDirection, direction), Q_ARG(TileSpecs, tiles),
-                              Q_ARG(int, score), Q_ARG(int, bestScore));
+    QMetaObject::invokeMethod(d->m_worker.get(), "saveTurn", Qt::QueuedConnection, Q_ARG(TurnSpec, turn));
 }
 
 
