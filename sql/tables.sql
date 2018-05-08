@@ -1,8 +1,11 @@
 CREATE TABLE IF NOT EXISTS games
                           (game_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                           game_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                           start_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+                           finish_time DATETIME DEFAULT CURRENT_TIMESTAMP,
                            rows INTEGER NOT NULL,
-                           columns INTEGER NOT NULL);
+                           columns INTEGER NOT NULL,
+                           score INTEGER NOT NULL DEFAULT 0,
+                           best_score INTEGER NOT NULL DEFAULT 0);
 
 CREATE TABLE IF NOT EXISTS turns
                           (turn_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,

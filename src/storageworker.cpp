@@ -158,32 +158,16 @@ void StorageWorker::closeDatabase()
 void StorageWorker::createGame(int rows, int columns)
 {
     QMutexLocker locker(&m_lock);
-    QSqlQuery sqlQuery(m_db);
+
     m_db.transaction();
 
-    const QString &query = QLatin1Literal("INSERT INTO games (rows, columns) "
-                                          "VALUES (?, ?)");
-
-    if (!sqlQuery.prepare(query)) {
-        qWarning() << "Failed to prepare the create game query:" << qPrintable(sqlQuery.lastError().driverText());
+    if (!updateGame()) {
         handleCreateGameError();
         return;
     }
 
-    sqlQuery.addBindValue(rows);
-    sqlQuery.addBindValue(columns);
-
-    if (!sqlQuery.exec()) {
-        qWarning() << "Failed to execute the create game query:" << qPrintable(sqlQuery.lastError().driverText());
-        handleCreateGameError();
-        return;
-    }
-
-    bool ok = false;
-    m_gameId = sqlQuery.lastInsertId().toInt(&ok);
-
-    if (!ok) {
-        qWarning() << "Failed to get id of the created game";
+    int gameId = WRONG_ID;
+    if (!createGame(rows, columns, gameId)) {
         handleCreateGameError();
         return;
     }
@@ -192,10 +176,10 @@ void StorageWorker::createGame(int rows, int columns)
     clearTurns();
 
     m_db.commit();
-    m_turnId = FIRST_TURN_ID;
-
     vacuum();
 
+    m_gameId = gameId;
+    m_turnId = FIRST_TURN_ID;
     emit gameCreated();
 }
 
@@ -429,6 +413,64 @@ bool StorageWorker::executeFileQueries(const QString& fileName)
             qWarning() << "Failed to execute query:" << sqlQuery.lastError().driverText();
             return false;
         }
+    }
+
+    return true;
+}
+
+
+bool StorageWorker::updateGame()
+{
+    Q_ASSERT(WRONG_ID != m_gameId);
+
+    QSqlQuery sqlQuery(m_db);
+
+    const QString &query = QLatin1Literal("REPLACE INTO games (game_id, start_time, finish_time, "
+                                                              "rows, columns, score, best_score) "
+                                          "SELECT games.game_id, games.start_time, turns.turn_time, "
+                                                 "games.rows, games.columns, turns.score, turns.best_score "
+                                          "FROM turns "
+                                          "LEFT JOIN games ON games.game_id = turns.game_id "
+                                          "ORDER BY turns.turn_id DESC LIMIT 1");
+
+    QString error;
+    if (executeQuery(query, error)) {
+        return true;
+    }
+
+    qWarning() << "Failed to execute the update game query:" << qPrintable(sqlQuery.lastError().driverText());
+    return false;
+}
+
+
+bool StorageWorker::createGame(int rows, int columns, int &gameId)
+{
+    QSqlQuery sqlQuery(m_db);
+
+    const QString &query = QLatin1Literal("INSERT INTO games (rows, columns, finish_time) "
+                                          "VALUES (?, ?, ?)");
+
+    if (!sqlQuery.prepare(query)) {
+        qWarning() << "Failed to prepare the create game query:" << qPrintable(sqlQuery.lastError().driverText());
+        return false;
+    }
+
+    sqlQuery.addBindValue(rows);
+    sqlQuery.addBindValue(columns);
+    sqlQuery.addBindValue({});
+
+    if (!sqlQuery.exec()) {
+        qWarning() << "Failed to execute the create game query:" << qPrintable(sqlQuery.lastError().driverText());
+        return false;
+    }
+
+    bool ok = false;
+    gameId = sqlQuery.lastInsertId().toInt(&ok);
+
+    if (!ok) {
+        qWarning() << "Failed to get id of the created game";
+        gameId = WRONG_ID;
+        return false;
     }
 
     return true;

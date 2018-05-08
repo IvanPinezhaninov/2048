@@ -74,6 +74,9 @@ private:
     bool executeQuery(const QString &query, QString &error);
     bool executeFileQueries(const QString &fileName);
 
+    bool updateGame();
+    bool createGame(int rows, int columns, int &gameId);
+
     bool saveTiles(const TileSpecs &tiles);
     bool restoreTiles(TileSpecs &tiles);
 
