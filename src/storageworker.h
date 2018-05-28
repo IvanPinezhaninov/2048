@@ -77,6 +77,7 @@ private:
     bool updateGame();
     bool createGame(int rows, int columns, int &gameId);
 
+    bool saveGameState(GameState state);
     bool saveTiles(const TileSpecs &tiles);
     bool restoreTiles(TileSpecs &tiles);
 
@@ -93,6 +94,10 @@ private:
     void handleCreateGameError();
     void handleSaveGameError();
     void handleRestoreGameError();
+
+    void startTransaction();
+    void commitTransaction();
+    void rollbackTransaction();
 
     QSqlDatabase m_db;
     QMutex m_lock;

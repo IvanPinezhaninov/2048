@@ -5,7 +5,8 @@ CREATE TABLE IF NOT EXISTS games
                            rows INTEGER NOT NULL,
                            columns INTEGER NOT NULL,
                            score INTEGER NOT NULL DEFAULT 0,
-                           best_score INTEGER NOT NULL DEFAULT 0);
+                           best_score INTEGER NOT NULL DEFAULT 0,
+                           game_state INTEGER NOT NULL DEFAULT 1);
 
 CREATE TABLE IF NOT EXISTS turns
                           (turn_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -13,7 +14,6 @@ CREATE TABLE IF NOT EXISTS turns
                            game_id INTEGER NOT NULL,
                            parent_turn_id INTEGER NOT NULL,
                            move_direction INTEGER NOT NULL,
-                           game_state INTEGER NOT NULL,
                            score INTEGER NOT NULL,
                            best_score INTEGER NOT NULL,
                            FOREIGN KEY (game_id) REFERENCES games(game_id));
