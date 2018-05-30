@@ -93,7 +93,7 @@ void StorageWorker::openDatabase()
     m_db = QSqlDatabase::addDatabase(QLatin1Literal(DATABASE_TYPE));
 
     if (!m_db.isValid()) {
-        qWarning() << "Failed to add database:" << qPrintable(m_db.lastError().driverText());
+        qWarning() << "Failed to add database:" << qPrintable(m_db.lastError().text());
         emit storageError();
         return;
     }
@@ -123,7 +123,7 @@ void StorageWorker::openDatabase()
     m_db.setDatabaseName(databaseName);
 
     if (!m_db.open()) {
-        qWarning() << "Failed to open database:" << databaseName << qPrintable(m_db.lastError().driverText());
+        qWarning() << "Failed to open database:" << databaseName << qPrintable(m_db.lastError().text());
         emit storageError();
         return;
     }
@@ -170,7 +170,7 @@ void StorageWorker::closeDatabase()
 void StorageWorker::createGame(int rows, int columns)
 {
     QMutexLocker locker(&m_lock);
-    startTransaction();
+    const bool transactional = startTransaction();
 
     if (!updateGame()) {
         handleCreateGameError();
@@ -185,7 +185,11 @@ void StorageWorker::createGame(int rows, int columns)
 
     removeTiles();
     removeTurns();
-    commitTransaction();
+
+    if (transactional && !commitTransaction()) {
+        handleCreateGameError();
+        return;
+    }
 
     m_gameId = gameId;
     m_turnId = FIRST_TURN_ID;
@@ -195,11 +199,20 @@ void StorageWorker::createGame(int rows, int columns)
 
 void StorageWorker::saveTurn(const TurnSpec &turn)
 {
-    Q_ASSERT(WRONG_ID != m_gameId);
-    Q_ASSERT(WRONG_ID != m_turnId);
+    if (WRONG_ID == m_gameId) {
+        qWarning() << "Failed to save turn in the database. Missing game id";
+        handleSaveTurnError(false);
+        return;
+    }
+
+    if (WRONG_ID == m_turnId) {
+        qWarning() << "Failed to save turn in the database. Missing turn id";
+        handleSaveTurnError(false);
+        return;
+    }
 
     QMutexLocker locker(&m_lock);
-    startTransaction();
+    const bool transactional = startTransaction();
 
     QSqlQuery sqlQuery(m_db);
 
@@ -208,8 +221,8 @@ void StorageWorker::saveTurn(const TurnSpec &turn)
                                           "VALUES (?, ?, ?, ?, ?)");
 
     if (!sqlQuery.prepare(query)) {
-        qWarning() << "Failed to prepare the save turn query:" << qPrintable(sqlQuery.lastError().driverText());
-        handleSaveGameError();
+        qWarning() << "Failed to prepare the save turn query:" << qPrintable(sqlQuery.lastError().text());
+        handleSaveTurnError();
         return;
     }
 
@@ -220,8 +233,8 @@ void StorageWorker::saveTurn(const TurnSpec &turn)
     sqlQuery.addBindValue(turn.bestScore());
 
     if (!sqlQuery.exec()) {
-        qWarning() << "Failed to execute the save turn query:" << qPrintable(sqlQuery.lastError().driverText());
-        handleSaveGameError();
+        qWarning() << "Failed to execute the save turn query:" << qPrintable(sqlQuery.lastError().text());
+        handleSaveTurnError();
         return;
     }
 
@@ -230,30 +243,34 @@ void StorageWorker::saveTurn(const TurnSpec &turn)
 
     if (!ok) {
         qWarning() << "Failed to get turn id of the saved turn";
-        handleSaveGameError();
+        handleSaveTurnError();
         return;
     }
 
     const bool needToSaveGameState = (GameState::Play != turn.gameState());
     if (needToSaveGameState && !saveGameState(turn.gameState())) {
-        handleSaveGameError();
+        handleSaveTurnError();
         return;
     }
 
     if (!saveTiles(turn.tiles())) {
-        handleSaveGameError();
+        handleSaveTurnError();
         return;
     }
 
-    commitTransaction();
-    emit gameSaved();
+    if (transactional && !commitTransaction()) {
+        handleSaveTurnError();
+        return;
+    }
+
+    emit turnSaved();
 }
 
 
 void StorageWorker::restoreGame()
 {
     QMutexLocker locker(&m_lock);
-    startTransaction();
+    const bool transactional = startTransaction();
 
     QSqlQuery sqlQuery(m_db);
 
@@ -264,13 +281,13 @@ void StorageWorker::restoreGame()
                                           "ORDER BY turns.turn_id DESC LIMIT 1");
 
     if (!sqlQuery.prepare(query)) {
-        qWarning() << "Failed to prepare the restore game query:" << qPrintable(sqlQuery.lastError().driverText());
+        qWarning() << "Failed to prepare the restore game query:" << qPrintable(sqlQuery.lastError().text());
         handleRestoreGameError();
         return;
     }
 
     if (!sqlQuery.exec()) {
-        qWarning() << "Failed to execute the restore game query:" << qPrintable(sqlQuery.lastError().driverText());
+        qWarning() << "Failed to execute the restore game query:" << qPrintable(sqlQuery.lastError().text());
         handleRestoreGameError();
         return;
     }
@@ -342,8 +359,10 @@ void StorageWorker::restoreGame()
         return;
     }
 
-    commitTransaction();
-
+    if (transactional && !commitTransaction()) {
+        handleRestoreGameError();
+        return;
+    }
 
     QStringList tileDescriptions;
     for (const auto &tile : tiles) {
@@ -394,14 +413,17 @@ bool StorageWorker::createDatabase()
         return false;
     }
 
-    startTransaction();
+    const bool transactional = startTransaction();
 
     if (!executeFileQueries(QLatin1Literal("://sql/tables.sql"))) {
         rollbackTransaction();
         return false;
     }
 
-    commitTransaction();
+    if (transactional && !commitTransaction()) {
+        return false;
+    }
+
     return true;
 }
 
@@ -434,7 +456,7 @@ bool StorageWorker::executeFileQueries(const QString &fileName)
 
     for (const auto &query : queries) {
         if (!sqlQuery.exec(query)) {
-            qWarning() << "Failed to execute query:" << sqlQuery.lastError().driverText();
+            qWarning() << "Failed to execute query:" << sqlQuery.lastError().text();
             return false;
         }
     }
@@ -465,7 +487,7 @@ bool StorageWorker::updateGame()
         return true;
     }
 
-    qWarning() << "Failed to execute the update game query:" << qPrintable(sqlQuery.lastError().driverText());
+    qWarning() << "Failed to execute the update game query:" << qPrintable(sqlQuery.lastError().text());
     return false;
 }
 
@@ -478,7 +500,7 @@ bool StorageWorker::createGame(int rows, int columns, int &gameId)
                                           "VALUES (?, ?, ?)");
 
     if (!sqlQuery.prepare(query)) {
-        qWarning() << "Failed to prepare the create game query:" << qPrintable(sqlQuery.lastError().driverText());
+        qWarning() << "Failed to prepare the create game query:" << qPrintable(sqlQuery.lastError().text());
         return false;
     }
 
@@ -487,7 +509,7 @@ bool StorageWorker::createGame(int rows, int columns, int &gameId)
     sqlQuery.addBindValue({});
 
     if (!sqlQuery.exec()) {
-        qWarning() << "Failed to execute the create game query:" << qPrintable(sqlQuery.lastError().driverText());
+        qWarning() << "Failed to execute the create game query:" << qPrintable(sqlQuery.lastError().text());
         return false;
     }
 
@@ -515,7 +537,7 @@ bool StorageWorker::saveGameState(GameState state)
     const QString &query = QLatin1Literal("UPDATE games SET game_state = ? WHERE game_id = ?");
 
     if (!sqlQuery.prepare(query)) {
-        qWarning() << "Failed to prepare the save game state query:" << qPrintable(sqlQuery.lastError().driverText());
+        qWarning() << "Failed to prepare the save game state query:" << qPrintable(sqlQuery.lastError().text());
         return false;
     }
 
@@ -523,7 +545,7 @@ bool StorageWorker::saveGameState(GameState state)
     sqlQuery.addBindValue(m_gameId);
 
     if (!sqlQuery.exec()) {
-        qWarning() << "Failed to execute the save game state query:" << qPrintable(sqlQuery.lastError().driverText());
+        qWarning() << "Failed to execute the save game state query:" << qPrintable(sqlQuery.lastError().text());
         return false;
     }
 
@@ -542,7 +564,7 @@ bool StorageWorker::saveTiles(const TileSpecs &tiles)
                                           "VALUES (?, ?, ?, ?)");
 
     if (!sqlQuery.prepare(query)) {
-        qWarning() << "Failed to prepare the save tiles query:" << qPrintable(sqlQuery.lastError().driverText());
+        qWarning() << "Failed to prepare the save tiles query:" << qPrintable(sqlQuery.lastError().text());
         return false;
     }
 
@@ -553,7 +575,7 @@ bool StorageWorker::saveTiles(const TileSpecs &tiles)
         sqlQuery.addBindValue(tile.value());
 
         if (!sqlQuery.exec()) {
-            qWarning() << "Failed to execute the save tiles query:" << qPrintable(sqlQuery.lastError().driverText());
+            qWarning() << "Failed to execute the save tiles query:" << qPrintable(sqlQuery.lastError().text());
             return false;
         }
     }
@@ -574,14 +596,14 @@ bool StorageWorker::restoreTiles(TileSpecs &tiles)
                                           "ORDER BY tile_spec_cell");
 
     if (!sqlQuery.prepare(query)) {
-        qWarning() << "Failed to prepare the restore tiles query:" << qPrintable(sqlQuery.lastError().driverText());
+        qWarning() << "Failed to prepare the restore tiles query:" << qPrintable(sqlQuery.lastError().text());
         return false;
     }
 
     sqlQuery.addBindValue(m_turnId);
 
     if (!sqlQuery.exec()) {
-        qWarning() << "Failed to execute the restore tiles query:" << qPrintable(sqlQuery.lastError().driverText());
+        qWarning() << "Failed to execute the restore tiles query:" << qPrintable(sqlQuery.lastError().text());
         return false;
     }
 
@@ -730,9 +752,9 @@ MoveDirection StorageWorker::moveDirectionFromInt(int value) const
 }
 
 
-void StorageWorker::handleCreateGameError()
+void StorageWorker::handleCreateGameError(bool rollback)
 {
-    if (m_db.transaction()) {
+    if (rollback) {
         rollbackTransaction();
     }
 
@@ -741,20 +763,20 @@ void StorageWorker::handleCreateGameError()
 }
 
 
-void StorageWorker::handleSaveGameError()
+void StorageWorker::handleSaveTurnError(bool rollback)
 {
-    if (m_db.transaction()) {
+    if (rollback) {
         rollbackTransaction();
     }
 
     m_turnId = WRONG_ID;
-    emit saveGameError();
+    emit saveTurnError();
 }
 
 
-void StorageWorker::handleRestoreGameError()
+void StorageWorker::handleRestoreGameError(bool rollback)
 {
-    if (m_db.transaction()) {
+    if (rollback) {
         rollbackTransaction();
     }
 
@@ -764,21 +786,39 @@ void StorageWorker::handleRestoreGameError()
 }
 
 
-void StorageWorker::startTransaction()
+bool StorageWorker::startTransaction()
 {
-    m_db.transaction();
+    const bool success = m_db.transaction();
+
+    if (!success) {
+        qWarning() << "Start transaction error:" << qPrintable(m_db.lastError().text());
+    }
+
+    return success;
 }
 
 
-void StorageWorker::commitTransaction()
+bool StorageWorker::commitTransaction()
 {
-    m_db.commit();
+    const bool success = m_db.commit();
+
+    if (!success) {
+        qWarning() << "Commit transaction error:" << qPrintable(m_db.lastError().text());
+    }
+
+    return success;
 }
 
 
-void StorageWorker::rollbackTransaction()
+bool StorageWorker::rollbackTransaction()
 {
-    m_db.rollback();
+    const bool success = m_db.rollback();
+
+    if (!success) {
+        qWarning() << "Rollback transaction error:" << qPrintable(m_db.lastError().text());
+    }
+
+    return success;
 }
 
 } // namespace Internal

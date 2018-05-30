@@ -69,8 +69,8 @@ StoragePrivate::StoragePrivate(Storage *parent) :
     QObject::connect(m_worker.get(), &StorageWorker::gameCreated, q, &Storage::gameCreated);
     QObject::connect(m_worker.get(), &StorageWorker::createGameError, q, &Storage::createGameError);
 
-    QObject::connect(m_worker.get(), &StorageWorker::gameSaved, q, &Storage::gameSaved);
-    QObject::connect(m_worker.get(), &StorageWorker::saveGameError, q, &Storage::saveGameError);
+    QObject::connect(m_worker.get(), &StorageWorker::turnSaved, q, &Storage::turnSaved);
+    QObject::connect(m_worker.get(), &StorageWorker::saveTurnError, q, &Storage::saveTurnError);
 
     QObject::connect(m_worker.get(), &StorageWorker::gameRestored, q, &Storage::gameRestored);
     QObject::connect(m_worker.get(), &StorageWorker::restoreGameError, q, &Storage::restoreGameError);

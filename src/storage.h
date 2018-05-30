@@ -62,8 +62,8 @@ signals:
     void gameCreated();
     void createGameError();
 
-    void gameSaved();
-    void saveGameError();
+    void turnSaved();
+    void saveTurnError();
 
     void gameRestored(const GameSpec &game);
     void restoreGameError();

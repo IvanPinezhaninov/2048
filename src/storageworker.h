@@ -53,8 +53,8 @@ signals:
     void gameCreated();
     void createGameError();
 
-    void gameSaved();
-    void saveGameError();
+    void turnSaved();
+    void saveTurnError();
 
     void gameRestored(const GameSpec &game);
     void restoreGameError();
@@ -92,13 +92,13 @@ private:
     int moveDirectionToInt(MoveDirection moveDirection) const;
     MoveDirection moveDirectionFromInt(int value) const;
 
-    void handleCreateGameError();
-    void handleSaveGameError();
-    void handleRestoreGameError();
+    void handleCreateGameError(bool rollback = true);
+    void handleSaveTurnError(bool rollback = true);
+    void handleRestoreGameError(bool rollback = true);
 
-    void startTransaction();
-    void commitTransaction();
-    void rollbackTransaction();
+    bool startTransaction();
+    bool commitTransaction();
+    bool rollbackTransaction();
 
     QSqlDatabase m_db;
     QMutex m_lock;
