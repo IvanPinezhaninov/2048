@@ -21,6 +21,7 @@
 
 
 #include "gamespec.h"
+#include "logger.h"
 #include "storageworker.h"
 #include "turnspec.h"
 
@@ -31,6 +32,7 @@
 #include <QSqlRecord>
 #include <QSqlQuery>
 #include <QStandardPaths>
+#include <QStringList>
 
 static const char *const DATABASE_TYPE = "QSQLITE";
 static const char *const DATABASE_NAME = "database.sqlite3";
@@ -51,18 +53,23 @@ static const char *const TILE_SPEC_ID_COLUMN_NAME = "tile_spec_id";
 static const char *const TILE_SPEC_CELL_COLUMN_NAME = "tile_spec_cell";
 static const char *const TILE_SPEC_VALUE_COLUMN_NAME = "tile_spec_value";
 
+static const char *const GAME_STATE_INIT_NAME = "Init";
+static const char *const GAME_STATE_PLAY_NAME = "Play";
+static const char *const GAME_STATE_WIN_NAME = "Win";
+static const char *const GAME_STATE_DEFEAT_NAME = "Defeat";
+static const char *const GAME_STATE_CONTINUE_NAME = "Continue";
 
-static const int GAME_STATE_INIT = 0;
-static const int GAME_STATE_PLAY = 1;
-static const int GAME_STATE_WIN = 2;
-static const int GAME_STATE_DEFEAT = 3;
-static const int GAME_STATE_CONTINUE = 4;
+static const int GAME_STATE_INIT_VALUE = 0;
+static const int GAME_STATE_PLAY_VALUE = 1;
+static const int GAME_STATE_WIN_VALUE = 2;
+static const int GAME_STATE_DEFEAT_VALUE = 3;
+static const int GAME_STATE_CONTINUE_VALUE = 4;
 
-static const int MOVE_DIRECTION_NONE = 0;
-static const int MOVE_DIRECTION_LEFT = 1;
-static const int MOVE_DIRECTION_RIGHT = 2;
-static const int MOVE_DIRECTION_UP = 3;
-static const int MOVE_DIRECTION_DOWN = 4;
+static const int MOVE_DIRECTION_NONE_VALUE = 0;
+static const int MOVE_DIRECTION_LEFT_VALUE = 1;
+static const int MOVE_DIRECTION_RIGHT_VALUE = 2;
+static const int MOVE_DIRECTION_UP_VALUE = 3;
+static const int MOVE_DIRECTION_DOWN_VALUE = 4;
 
 static const int WRONG_ID = -1;
 static const int FIRST_TURN_ID = 0;
@@ -139,6 +146,7 @@ void StorageWorker::openDatabase()
         break;
     }
 
+    qDebug() << "Database opened:" << qPrintable(databaseName);
     qDebug() << "Database version:" << version;
 
     if (ready) {
@@ -151,7 +159,11 @@ void StorageWorker::openDatabase()
 
 void StorageWorker::closeDatabase()
 {
-    m_db.close();
+    if (m_db.isOpen()) {
+        vacuum();
+        m_db.close();
+        qDebug() << "Database closed";
+    }
 }
 
 
@@ -171,10 +183,9 @@ void StorageWorker::createGame(int rows, int columns)
         return;
     }
 
-    clearTiles();
-    clearTurns();
+    removeTiles();
+    removeTurns();
     commitTransaction();
-    vacuum();
 
     m_gameId = gameId;
     m_turnId = FIRST_TURN_ID;
@@ -274,7 +285,7 @@ void StorageWorker::restoreGame()
 
     m_gameId = sqlQuery.value(QLatin1Literal(GAME_ID_COLUMN_NAME)).toInt(&ok);
     if (!ok) {
-        qWarning() << "Failed to get the game id of the restored game";
+        qWarning() << "Failed to get id of the restored game";
         handleRestoreGameError();
         return;
     }
@@ -332,6 +343,19 @@ void StorageWorker::restoreGame()
     }
 
     commitTransaction();
+
+
+    QStringList tileDescriptions;
+    for (const auto &tile : tiles) {
+        tileDescriptions.append(QString(QLatin1Literal("%1-%2")).arg(tile.cell()).arg(tile.value()));
+    }
+
+    qDebug().nospace() << "Game restored from the database. Game id: " << m_gameId << ". Turn id: " << m_turnId;
+    qDebug().nospace() << "Gameboard size: " << rows << "x" << columns << ". "
+                       << "Game state: " << qPrintable(gameStateName(gameState)) << ". "
+                       << "Score: " << score << ". Best score: " << bestScore;
+    qDebug() << "Tiles:" << qPrintable(tileDescriptions.join(QLatin1Literal("; ")));
+
     emit gameRestored({ rows, columns, gameState, score, bestScore, tiles });
 }
 
@@ -421,7 +445,10 @@ bool StorageWorker::executeFileQueries(const QString &fileName)
 
 bool StorageWorker::updateGame()
 {
-    Q_ASSERT(WRONG_ID != m_gameId);
+    if (WRONG_ID == m_gameId) {
+        qWarning() << "Update the game in the database canceled. Missing game id";
+        return true;
+    }
 
     QSqlQuery sqlQuery(m_db);
 
@@ -473,6 +500,8 @@ bool StorageWorker::createGame(int rows, int columns, int &gameId)
         return false;
     }
 
+    qDebug().nospace() << "New game saved in the database. Game id: " << gameId << ". "
+                       << "Gameboard size: " << rows << "x" << columns;
     return true;
 }
 
@@ -541,7 +570,8 @@ bool StorageWorker::restoreTiles(TileSpecs &tiles)
 
     const QString &query = QLatin1Literal("SELECT tile_spec_id, tile_spec_cell, tile_spec_value "
                                           "FROM tiles "
-                                          "WHERE turn_id = ?");
+                                          "WHERE turn_id = ? "
+                                          "ORDER BY tile_spec_cell");
 
     if (!sqlQuery.prepare(query)) {
         qWarning() << "Failed to prepare the restore tiles query:" << qPrintable(sqlQuery.lastError().driverText());
@@ -588,20 +618,20 @@ bool StorageWorker::restoreTiles(TileSpecs &tiles)
 }
 
 
-void StorageWorker::clearTurns()
+void StorageWorker::removeTurns()
 {
     QString error;
     if (!executeQuery(QLatin1Literal("DELETE FROM turns"), error)) {
-        qWarning() << "Failed to execute clear turns query" << qPrintable(error);
+        qWarning() << "Failed to execute the remove turns query" << qPrintable(error);
     }
 }
 
 
-void StorageWorker::clearTiles()
+void StorageWorker::removeTiles()
 {
     QString error;
     if (!executeQuery(QLatin1Literal("DELETE FROM tiles"), error)) {
-        qWarning() << "Failed to execute clear tiles query:" << qPrintable(error);
+        qWarning() << "Failed to execute the remove tiles query:" << qPrintable(error);
     }
 }
 
@@ -610,7 +640,7 @@ void StorageWorker::vacuum()
 {
     QString error;
     if (!executeQuery(QLatin1Literal("VACUUM"), error)) {
-        qWarning() << "Failed to execute vacuum query:" << qPrintable(error);
+        qWarning() << "Failed to execute the vacuum query:" << qPrintable(error);
     }
 }
 
@@ -619,15 +649,15 @@ int StorageWorker::gameStateToInt(GameState gameState) const
 {
     switch (gameState) {
     case GameState::Init:
-        return GAME_STATE_INIT;
+        return GAME_STATE_INIT_VALUE;
     case GameState::Play:
-        return GAME_STATE_PLAY;
+        return GAME_STATE_PLAY_VALUE;
     case GameState::Win:
-        return GAME_STATE_WIN;
+        return GAME_STATE_WIN_VALUE;
     case GameState::Defeat:
-        return GAME_STATE_DEFEAT;
+        return GAME_STATE_DEFEAT_VALUE;
     case GameState::Continue:
-        return GAME_STATE_CONTINUE;
+        return GAME_STATE_CONTINUE_VALUE;
     }
 }
 
@@ -635,13 +665,13 @@ int StorageWorker::gameStateToInt(GameState gameState) const
 GameState StorageWorker::gameStateFromInt(int value) const
 {
     switch (value) {
-    case GAME_STATE_PLAY:
+    case GAME_STATE_PLAY_VALUE:
         return GameState::Play;
-    case GAME_STATE_WIN:
+    case GAME_STATE_WIN_VALUE:
         return GameState::Win;
-    case GAME_STATE_DEFEAT:
+    case GAME_STATE_DEFEAT_VALUE:
         return GameState::Defeat;
-    case GAME_STATE_CONTINUE:
+    case GAME_STATE_CONTINUE_VALUE:
         return GameState::Continue;
     default:
         return GameState::Init;
@@ -649,33 +679,50 @@ GameState StorageWorker::gameStateFromInt(int value) const
 }
 
 
+QString StorageWorker::gameStateName(GameState state) const
+{
+    switch (state) {
+    case GameState::Init:
+        return QLatin1Literal(GAME_STATE_INIT_NAME);
+    case GameState::Play:
+        return QLatin1Literal(GAME_STATE_PLAY_NAME);
+    case GameState::Win:
+        return QLatin1Literal(GAME_STATE_WIN_NAME);
+    case GameState::Defeat:
+        return QLatin1Literal(GAME_STATE_DEFEAT_NAME);
+    case GameState::Continue:
+        return QLatin1Literal(GAME_STATE_CONTINUE_NAME);
+    }
+}
+
+
 int StorageWorker::moveDirectionToInt(MoveDirection moveDirection) const
 {
-    switch (moveDirection) {
-    case MoveDirection::None:
-        return MOVE_DIRECTION_NONE;
-    case MoveDirection::Left:
-        return MOVE_DIRECTION_LEFT;
-    case MoveDirection::Right:
-        return MOVE_DIRECTION_RIGHT;
-    case MoveDirection::Up:
-        return MOVE_DIRECTION_UP;
-    case MoveDirection::Down:
-        return MOVE_DIRECTION_DOWN;
-    }
+  switch (moveDirection) {
+  case MoveDirection::None:
+    return MOVE_DIRECTION_NONE_VALUE;
+  case MoveDirection::Left:
+    return MOVE_DIRECTION_LEFT_VALUE;
+  case MoveDirection::Right:
+    return MOVE_DIRECTION_RIGHT_VALUE;
+  case MoveDirection::Up:
+    return MOVE_DIRECTION_UP_VALUE;
+  case MoveDirection::Down:
+    return MOVE_DIRECTION_DOWN_VALUE;
+  }
 }
 
 
 MoveDirection StorageWorker::moveDirectionFromInt(int value) const
 {
     switch (value) {
-    case MOVE_DIRECTION_LEFT:
+    case MOVE_DIRECTION_LEFT_VALUE:
         return MoveDirection::Left;
-    case MOVE_DIRECTION_RIGHT:
+    case MOVE_DIRECTION_RIGHT_VALUE:
         return MoveDirection::Right;
-    case MOVE_DIRECTION_UP:
+    case MOVE_DIRECTION_UP_VALUE:
         return MoveDirection::Up;
-    case MOVE_DIRECTION_DOWN:
+    case MOVE_DIRECTION_DOWN_VALUE:
         return MoveDirection::Down;
     default:
         return MoveDirection::None;

@@ -73,6 +73,8 @@ set(HEADERS
     src/gamespec.h
     src/storage.h
     src/storageworker.h
+    src/logger.h
+    src/loggerworker.h
 )
 
 SET(MOC_HEADERS
@@ -83,6 +85,7 @@ SET(MOC_HEADERS
     src/gamecontroller.h
     src/storage.h
     src/storageworker.h
+    src/loggerworker.h
 )
 
 set(SOURCES
@@ -96,6 +99,8 @@ set(SOURCES
     src/gamespec.cpp
     src/storage.cpp
     src/storageworker.cpp
+    src/logger.cpp
+    src/loggerworker.cpp
     src/main.cpp
 )
 

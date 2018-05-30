@@ -22,6 +22,7 @@
 #include "game.h"
 #include "gameboard.h"
 
+#include <QDebug>
 #include <QKeyEvent>
 #include <QQmlApplicationEngine>
 #include <QQuickItem>
@@ -113,6 +114,7 @@ bool Game::init()
 {
     d->m_qmlEngine->load(QUrl(QLatin1Literal(MAIN_WINDOW_FILE_PATH)));
     if (d->m_qmlEngine->rootObjects().isEmpty()) {
+        qCritical() << "Can't find QML root objects";
         return false;
     }
 

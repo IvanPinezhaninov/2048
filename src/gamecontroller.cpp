@@ -26,6 +26,7 @@
 #include "storage.h"
 #include "tile.h"
 
+#include <QDebug>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlComponent>
@@ -549,6 +550,8 @@ void GameController::shutdown()
 
 void GameController::onGameReady()
 {
+    qDebug() << "Game ready";
+
     d->readSettings();
 
     switch (d->m_storage->state()) {
@@ -643,14 +646,19 @@ void GameController::onTileMoveFinished()
 
 void GameController::onStorageReady()
 {
+    qDebug() << "Storage ready";
+
     if (d->m_game->isReady()) {
         d->m_storage->restoreGame();
     }
+
 }
 
 
 void GameController::onStorageError()
 {
+    qWarning() << "Storage error";
+
     if (d->m_game->isReady()) {
         d->createNewGame(DEFAULT_GAMEBOARD_ROWS, DEFAULT_GAMEBOARD_COLUMNS);
     }

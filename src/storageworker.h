@@ -81,12 +81,13 @@ private:
     bool saveTiles(const TileSpecs &tiles);
     bool restoreTiles(TileSpecs &tiles);
 
-    void clearTurns();
-    void clearTiles();
+    void removeTurns();
+    void removeTiles();
     void vacuum();
 
     int gameStateToInt(GameState gameState) const;
     GameState gameStateFromInt(int value) const;
+    QString gameStateName(GameState state) const;
 
     int moveDirectionToInt(MoveDirection moveDirection) const;
     MoveDirection moveDirectionFromInt(int value) const;

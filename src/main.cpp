@@ -21,11 +21,32 @@
 
 
 #include "gamecontroller.h"
+#include "logger.h"
 
+#include <QDebug>
 #include <QGuiApplication>
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 4, 0))
+#include <QSysInfo>
+#endif
+
+#ifdef QT_DEBUG
+static const auto defaultMessageHandler = qInstallMessageHandler(nullptr);
+#endif
+
+
+static void messageHandler(QtMsgType type, const QMessageLogContext &context, const QString &message)
+{
+    Log::Logger::instance().write(type, context, message);
+#ifdef QT_DEBUG
+    (*defaultMessageHandler)(type, context, message);
+#endif
+}
+
 
 int main(int argc, char *argv[])
 {
+    qInstallMessageHandler(messageHandler);
+
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 6, 0))
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 #endif
@@ -34,14 +55,25 @@ int main(int argc, char *argv[])
     app.setOrganizationName(QLatin1Literal(ORGANIZATION_NAME));
     app.setApplicationName(QLatin1Literal(APPLICATION_NAME));
 
-    using GameController = Game::GameController;
+    qDebug() << "Application opened";
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 4, 0))
+    qDebug().noquote() << "Host system:" << QSysInfo::prettyProductName() << QSysInfo::currentCpuArchitecture();
+#endif
 
-    GameController gameController;
-    QObject::connect(&app, &QGuiApplication::lastWindowClosed, &gameController, &GameController::shutdown);
+    auto result = EXIT_FAILURE;
 
-    if (!gameController.init()) {
-        return EXIT_FAILURE;
+    {
+        using GameController = Game::GameController;
+        GameController gameController;
+        QObject::connect(&app, &QGuiApplication::lastWindowClosed, &gameController, &GameController::shutdown);
+
+        if (gameController.init()) {
+            result = app.exec();
+        } else {
+            qDebug() << "The application was unable to start correctly";
+        }
     }
 
-    return app.exec();
+    qDebug() << "Application closed";
+    return result;
 }
