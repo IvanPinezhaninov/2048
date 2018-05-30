@@ -618,19 +618,19 @@ void GameController::onTileMoveFinished()
         d->m_aboutToOrphanedTiles.clear();
         d->m_game->setScore(score);
 
+        bool moveBlocked = false;
+
         if (win) {
             d->m_game->setGameState(GameState::Win);
+            moveBlocked = true;
             win = false;
         } else {
             d->createRandomTile();
         }
 
-        bool moveBlocked = true;
-
         if (d->isDefeat()) {
             d->m_game->setGameState(GameState::Defeat);
-        } else {
-            moveBlocked = false;
+            moveBlocked = true;
         }
 
         if (StorageState::Ready == d->m_storage->state()) {
@@ -748,8 +748,11 @@ void GameController::restoreGame()
         d->m_game->setGameState(GameState::Play);
     }
 
+    if (GameState::Win != gameState && GameState::Defeat != gameState) {
+        d->setMoveBlocked(false);
+    }
+
     d->m_restoredTiles.clear();
-    d->setMoveBlocked(false);
 }
 
 } // namespace Game
