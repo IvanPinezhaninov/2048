@@ -30,7 +30,7 @@ Rectangle {
     property int columns: 0
 
     objectName: 'Gameboard'
-    radius: Math.min(width, height) * Constants.gameboardRadiusRatio
+    radius: Math.round(Math.min(width, height) * Constants.gameboardRadiusRatio)
     color: '#bbada0'
 
     Component {
@@ -39,17 +39,17 @@ Rectangle {
         Rectangle {
             width: (gameboard.width - (cellsGrid.spacing * (gameboard.columns + 1))) / gameboard.columns
             height: (gameboard.height - (cellsGrid.spacing * (gameboard.rows + 1))) / gameboard.rows
-            radius: Math.min(width, height) * Constants.tileRadiusRatio
+            radius: Math.round(Math.min(width, height) * Constants.tileRadiusRatio)
             color: '#ccc0b3'
 
             Text {
                 id: cellIndex
 
                 anchors.centerIn: parent
-                anchors.verticalCenterOffset: parent.height * Constants.textVerticalOffsetRatio
+                anchors.verticalCenterOffset: Math.round(parent.height * Constants.textVerticalOffsetRatio)
                 font.family: Constants.fontFamily
                 font.weight: Font.Bold
-                font.pixelSize: Math.min(parent.width, parent.height) * 0.32
+                font.pixelSize: Math.round(Math.min(parent.width, parent.height) * 0.32)
                 color: '#bbada0'
                 text: index
             }
@@ -64,7 +64,7 @@ Rectangle {
         anchors.margins: spacing
         columns: parent.columns
         rows: parent.rows
-        spacing: Math.min(parent.width, parent.height) / Math.min(rows, columns) * 0.12
+        spacing: Math.round(Math.min(parent.width, parent.height) / Math.min(rows, columns) * 0.12)
 
         Repeater {
             id: cellsRepeater

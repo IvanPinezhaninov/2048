@@ -69,7 +69,7 @@ Item {
 
         anchors.left: gameboard.left
         anchors.verticalCenter: bestScoreLabel.verticalCenter
-        anchors.verticalCenterOffset: font.pixelSize * -0.06
+        anchors.verticalCenterOffset: Math.round(font.pixelSize * -0.06)
         font.family: Constants.fontFamily
         font.pixelSize: 78
         font.weight: Font.Bold
@@ -102,7 +102,7 @@ Item {
 
         anchors.left: gameboard.left
         anchors.verticalCenter: newGameButton.verticalCenter
-        anchors.verticalCenterOffset: font.pixelSize * Constants.buttonTextVerticalOffsetRatio
+        anchors.verticalCenterOffset: Math.round(font.pixelSize * Constants.buttonTextVerticalOffsetRatio)
         font.family: Constants.fontFamily
         font.pixelSize: 18
         color: '#776e65'

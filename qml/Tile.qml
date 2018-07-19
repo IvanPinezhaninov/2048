@@ -46,10 +46,10 @@ Rectangle {
         id: tileText
 
         anchors.centerIn: parent
-        anchors.verticalCenterOffset: font.pixelSize * -0.04
+        anchors.verticalCenterOffset: Math.round(font.pixelSize * -0.04)
         font.family: Constants.fontFamily
         font.weight: Font.Bold
-        font.pixelSize: Math.min(parent.width, parent.height) * largeFontRatio
+        font.pixelSize: Math.round(Math.min(parent.width, parent.height) * largeFontRatio)
         color: '#776e65'
         text: tile.value
     }
@@ -171,7 +171,7 @@ Rectangle {
             name: '128'
             when: tile.value === 128
             PropertyChanges { target: tile; color: '#edcf72' }
-            PropertyChanges { target: tileText;  font.pixelSize: tile.width * mediumFontRatio }
+            PropertyChanges { target: tileText;  font.pixelSize: Math.round(tile.width * mediumFontRatio) }
             PropertyChanges { target: tileText;  color: '#f9f6f2' }
         },
 
@@ -179,7 +179,7 @@ Rectangle {
             name: '256'
             when: tile.value === 256
             PropertyChanges { target: tile; color: '#edcc61' }
-            PropertyChanges { target: tileText;  font.pixelSize: tile.width * mediumFontRatio }
+            PropertyChanges { target: tileText;  font.pixelSize: Math.round(tile.width * mediumFontRatio) }
             PropertyChanges { target: tileText;  color: '#f9f6f2' }
         },
 
@@ -187,7 +187,7 @@ Rectangle {
             name: '512'
             when: tile.value === 512
             PropertyChanges { target: tile; color: '#edc850' }
-            PropertyChanges { target: tileText;  font.pixelSize: tile.width * mediumFontRatio }
+            PropertyChanges { target: tileText;  font.pixelSize: Math.round(tile.width * mediumFontRatio) }
             PropertyChanges { target: tileText;  color: '#f9f6f2' }
         },
 
@@ -195,7 +195,7 @@ Rectangle {
             name: '1024'
             when: tile.value === 1024
             PropertyChanges { target: tile; color: '#edc53f' }
-            PropertyChanges { target: tileText;  font.pixelSize: tile.width * smallFontRatio }
+            PropertyChanges { target: tileText;  font.pixelSize: Math.round(tile.width * smallFontRatio) }
             PropertyChanges { target: tileText;  color: '#f9f6f2' }
         },
 
@@ -203,7 +203,7 @@ Rectangle {
             name: '2048'
             when: tile.value === 2048
             PropertyChanges { target: tile; color: '#edc22e' }
-            PropertyChanges { target: tileText;  font.pixelSize: tile.width * smallFontRatio }
+            PropertyChanges { target: tileText;  font.pixelSize: Math.round(tile.width * smallFontRatio) }
             PropertyChanges { target: tileText;  color: '#f9f6f2' }
         },
 
@@ -211,7 +211,7 @@ Rectangle {
             name: '4096+'
             when: tile.value >= 4096 && tile.value < 131072
             PropertyChanges { target: tile; color: '#3c3a32' }
-            PropertyChanges { target: tileText;  font.pixelSize: tile.width * xSmallFontRatio }
+            PropertyChanges { target: tileText;  font.pixelSize: Math.round(tile.width * xSmallFontRatio) }
             PropertyChanges { target: tileText;  color: '#f9f6f2' }
         },
 
@@ -219,21 +219,21 @@ Rectangle {
             name: '131072+'
             when: tile.value >= 131072 && tile.value < 1048576
             extend: '4096+'
-            PropertyChanges { target: tileText;  font.pixelSize: tile.width * xxSmallFontRatio }
+            PropertyChanges { target: tileText;  font.pixelSize: Math.round(tile.width * xxSmallFontRatio) }
         },
 
         State {
             name: '1048576+'
             when: tile.value >= 1048576 && tile.value < 16777216
             extend: '4096+'
-            PropertyChanges { target: tileText;  font.pixelSize: tile.width * xxxSmallFontRatio }
+            PropertyChanges { target: tileText;  font.pixelSize: Math.round(tile.width * xxxSmallFontRatio) }
         },
 
         State {
             name: '16777216+'
             when: tile.value >= 16777216
             extend: '4096+'
-            PropertyChanges { target: tileText;  font.pixelSize: tile.width * xxxxSmallFontRatio }
+            PropertyChanges { target: tileText;  font.pixelSize: Math.round(tile.width * xxxxSmallFontRatio) }
         }
     ]
 

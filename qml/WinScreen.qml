@@ -33,7 +33,7 @@ Item {
         id: background
 
         anchors.fill: parent
-        radius: Math.min(width, height) * Constants.gameboardRadiusRatio
+        radius: Math.round(Math.min(width, height) * Constants.gameboardRadiusRatio)
         color: '#edc22e'
         opacity: 0.0
     }
@@ -106,8 +106,8 @@ Item {
             PropertyAnimation {
                 target: text
                 property: 'anchors.verticalCenterOffset'
-                from: parent.height * 0.5 + text.font.pixelSize * 0.5
-                to: text.font.pixelSize * -0.65
+                from: Math.round(parent.height * 0.5 + text.font.pixelSize * 0.5)
+                to: Math.round(text.font.pixelSize * -0.65)
                 duration: 1500
                 easing.type: Easing.OutBack
             }

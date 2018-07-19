@@ -60,8 +60,8 @@ Rectangle {
         Scale {
             id: scaleTransform
 
-            origin.x: button.width / 2
-            origin.y: button.height / 2
+            origin.x: Math.round(button.width * 0.5)
+            origin.y: Math.round(button.height * 0.5)
             property real scale: 1
             xScale: scale
             yScale: scale
