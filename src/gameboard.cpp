@@ -30,6 +30,7 @@ static const char *const CELLS_REPEATER_OBJECT_NAME = "CellsRepeater";
 
 static const char *const ROWS_PROPERTY_NAME = "rows";
 static const char *const COLUMNS_PROPERTY_NAME = "columns";
+static const char *const DEBUG_PROPERTY_NAME = "debug";
 
 
 namespace Game {
@@ -57,6 +58,9 @@ GameboardPrivate::GameboardPrivate(QQuickItem *gameboardQuickItem) :
     m_rows(0),
     m_columns(0)
 {
+#ifdef QT_DEBUG
+  m_gameboardQuickItem->setProperty(DEBUG_PROPERTY_NAME, true);
+#endif
 }
 
 

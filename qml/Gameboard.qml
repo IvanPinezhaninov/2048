@@ -28,6 +28,7 @@ Rectangle {
 
     property int rows: 0
     property int columns: 0
+    property bool debug: false
 
     objectName: 'Gameboard'
     radius: Math.round(Math.min(width, height) * Constants.gameboardRadiusRatio)
@@ -46,12 +47,13 @@ Rectangle {
                 id: cellIndex
 
                 anchors.centerIn: parent
-                anchors.verticalCenterOffset: Math.round(parent.height * Constants.textVerticalOffsetRatio)
+                anchors.verticalCenterOffset: Math.round(font.pixelSize * Constants.textVerticalOffsetRatio)
                 font.family: Constants.fontFamily
                 font.weight: Font.Bold
                 font.pixelSize: Math.round(Math.min(parent.width, parent.height) * 0.32)
                 color: '#bbada0'
                 text: index
+                visible: gameboard.debug
             }
         }
     }

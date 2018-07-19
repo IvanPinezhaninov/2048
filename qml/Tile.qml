@@ -46,7 +46,7 @@ Rectangle {
         id: tileText
 
         anchors.centerIn: parent
-        anchors.verticalCenterOffset: Math.round(font.pixelSize * -0.04)
+        anchors.verticalCenterOffset: Math.round(font.pixelSize * Constants.textVerticalOffsetRatio)
         font.family: Constants.fontFamily
         font.weight: Font.Bold
         font.pixelSize: Math.round(Math.min(parent.width, parent.height) * largeFontRatio)

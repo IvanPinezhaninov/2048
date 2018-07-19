@@ -102,7 +102,7 @@ Item {
 
         anchors.left: gameboard.left
         anchors.verticalCenter: newGameButton.verticalCenter
-        anchors.verticalCenterOffset: Math.round(font.pixelSize * Constants.buttonTextVerticalOffsetRatio)
+        anchors.verticalCenterOffset: Math.round(font.pixelSize * Constants.textVerticalOffsetRatio)
         font.family: Constants.fontFamily
         font.pixelSize: 18
         color: '#776e65'
