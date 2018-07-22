@@ -56,29 +56,23 @@ public:
     Cell_ptr cell() const;
     void setCell(const Cell_ptr &cell);
 
-    qreal x() const;
-    qreal y() const;
     qreal z() const;
-    qreal width() const;
-    qreal height() const;
+    void setZ(qreal z);
 
 signals:
     void moveFinished();
 
-public slots:
-    void move(const QRectF &location);
-
-    void setX(qreal x);
-    void setY(qreal y);
-    void setZ(qreal z);
-    void setWidth(qreal width);
-    void setHeight(qreal height);
-
 private slots:
+    void onCellXChanged(qreal x);
+    void onCellYChanged(qreal y);
+    void onCellWidthChanged(qreal width);
+    void onCellHeightChanged(qreal height);
     void onMoveFinished();
 
 private:
     Q_DISABLE_COPY(Tile)
+
+    void move(const QRectF &location);
 
     const std::unique_ptr<QQuickItem> m_tileQuickItem;
     int m_id;

@@ -100,30 +100,28 @@ Cell_ptr Tile::cell() const
 
 void Tile::setCell(const Cell_ptr &cell)
 {
-    const auto &oldCell = m_cell.lock();
-    m_cell = cell;
-
-    if (const auto &cell = m_cell.lock()) {
+    if (cell) {
         const auto &tile = shared_from_this();
-        if (cell->tile() != tile) {
-            cell->setTile(tile);
+        if (cell->tile() == tile) {
+            m_cell = cell;
+            connect(cell.get(), &Cell::xChanged, this, &Tile::onCellXChanged);
+            connect(cell.get(), &Cell::yChanged, this, &Tile::onCellYChanged);
+            connect(cell.get(), &Cell::widthChanged, this, &Tile::onCellWidthChanged);
+            connect(cell.get(), &Cell::heightChanged, this, &Tile::onCellHeightChanged);
             move({ cell->x(), cell->y(), cell->width(), cell->height() });
+        } else {
+            cell->setTile(tile);
         }
-    } else if (oldCell) {
-        oldCell->setTile(nullptr);
+    } else {
+        if (const auto &cell = m_cell.lock()) {
+            disconnect(cell.get(), &Cell::xChanged, this, &Tile::onCellXChanged);
+            disconnect(cell.get(), &Cell::yChanged, this, &Tile::onCellYChanged);
+            disconnect(cell.get(), &Cell::widthChanged, this, &Tile::onCellWidthChanged);
+            disconnect(cell.get(), &Cell::heightChanged, this, &Tile::onCellHeightChanged);
+            m_cell.reset();
+            cell->setTile(nullptr);
+        }
     }
-}
-
-
-qreal Tile::x() const
-{
-    return m_tileQuickItem->x();
-}
-
-
-qreal Tile::y() const
-{
-    return m_tileQuickItem->y();
 }
 
 
@@ -133,45 +131,13 @@ qreal Tile::z() const
 }
 
 
-qreal Tile::width() const
-{
-    return m_tileQuickItem->width();
-}
-
-
-qreal Tile::height() const
-{
-    return m_tileQuickItem->height();
-}
-
-
-void Tile::move(const QRectF &location)
-{
-    if (!qFuzzyCompare(m_tileQuickItem->property(X_PROPERTY_NAME).toReal(), location.x())) {
-        m_tileQuickItem->setProperty(X_PROPERTY_NAME, location.x());
-    }
-
-    if (!qFuzzyCompare(m_tileQuickItem->property(Y_PROPERTY_NAME).toReal(), location.y())) {
-        m_tileQuickItem->setProperty(Y_PROPERTY_NAME, location.y());
-    }
-
-    if (!qFuzzyCompare(m_tileQuickItem->property(WIDTH_PROPERTY_NAME).toReal(), location.width())) {
-        m_tileQuickItem->setProperty(WIDTH_PROPERTY_NAME, location.width());
-    }
-
-    if (!qFuzzyCompare(m_tileQuickItem->property(HEIGHT_PROPERTY_NAME).toReal(), location.height())) {
-        m_tileQuickItem->setProperty(HEIGHT_PROPERTY_NAME, location.height());
-    }
-}
-
-
-void Tile::setX(qreal x)
+void Tile::onCellXChanged(qreal x)
 {
     m_tileQuickItem->setX(x);
 }
 
 
-void Tile::setY(qreal y)
+void Tile::onCellYChanged(qreal y)
 {
     m_tileQuickItem->setY(y);
 }
@@ -183,13 +149,13 @@ void Tile::setZ(qreal z)
 }
 
 
-void Tile::setWidth(qreal width)
+void Tile::onCellWidthChanged(qreal width)
 {
     m_tileQuickItem->setWidth(width);
 }
 
 
-void Tile::setHeight(qreal height)
+void Tile::onCellHeightChanged(qreal height)
 {
     m_tileQuickItem->setHeight(height);
 }
@@ -199,6 +165,15 @@ void Tile::onMoveFinished()
 {
     m_tileQuickItem->setProperty(VALUE_PROPERTY_NAME, m_value);
     emit moveFinished();
+}
+
+
+void Tile::move(const QRectF &location)
+{
+    m_tileQuickItem->setProperty(X_PROPERTY_NAME, location.x());
+    m_tileQuickItem->setProperty(Y_PROPERTY_NAME, location.y());
+    m_tileQuickItem->setProperty(WIDTH_PROPERTY_NAME, location.width());
+    m_tileQuickItem->setProperty(HEIGHT_PROPERTY_NAME, location.height());
 }
 
 } // namespace Internal

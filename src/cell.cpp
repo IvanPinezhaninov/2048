@@ -81,58 +81,41 @@ qreal Cell::height() const
 
 void Cell::setTile(const Tile_ptr &tile)
 {
-    const auto &oldTile = m_tile.lock();
-    m_tile = tile;
-
     if (const auto &tile = m_tile.lock()) {
+        tile->setCell(nullptr);
+    }
+
+    if (tile) {
+        m_tile = tile;
         const auto &cell = shared_from_this();
-        if (tile->cell() != cell) {
-            tile->setCell(cell);
-            tile->move({ x(), y(), width(), height() });
-        }
-    } else if (oldTile) {
-        oldTile->setCell(nullptr);
+        tile->setCell(cell);
+    } else {
+        m_tile.reset();
     }
 }
 
 
 void Cell::onXChanged()
 {
-    Q_ASSERT(m_cellQuickItem);
-
-    if (const auto &tile = m_tile.lock()) {
-        tile->setX(x());
-    }
+    emit xChanged(m_cellQuickItem->x());
 }
 
 
 void Cell::onYChanged()
 {
-    Q_ASSERT(m_cellQuickItem);
-
-    if (const auto &tile = m_tile.lock()) {
-        tile->setY(y());
-    }
+    emit yChanged(m_cellQuickItem->y());
 }
 
 
 void Cell::onWidthChanged()
 {
-    Q_ASSERT(m_cellQuickItem);
-
-    if (const auto &tile = m_tile.lock()) {
-        tile->setWidth(width());
-    }
+    emit widthChanged(m_cellQuickItem->width());
 }
 
 
 void Cell::onHeightChanged()
 {
-    Q_ASSERT(m_cellQuickItem);
-
-    if (const auto &tile = m_tile.lock()) {
-        tile->setHeight(height());
-    }
+    emit heightChanged(m_cellQuickItem->height());
 }
 
 } // namespace Internal

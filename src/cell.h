@@ -53,6 +53,12 @@ public:
     qreal width() const;
     qreal height() const;
 
+signals:
+    void xChanged(qreal x);
+    void yChanged(qreal y);
+    void widthChanged(qreal width);
+    void heightChanged(qreal height);
+
 public slots:
     void setTile(const Tile_ptr &tile);
 
