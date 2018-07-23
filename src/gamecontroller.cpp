@@ -79,11 +79,9 @@ public:
     void createRandomTile();
     void createStartTiles();
     void setOrphanedTile(const Tile_ptr &tile);
-    void moveTiles();
     void moveTile(const Cell_ptr &sourceCell, const Cell_ptr &targetCell);
     void clearTiles();
     bool isDefeat() const;
-    void setMoveBlocked(bool blocked);
     void setGameboardSize(int rows, int columns);
     void createNewGame(int rows, int columns);
     void saveTurn();
@@ -181,12 +179,10 @@ void GameControllerPrivate::createTile(int id, int cellIndex, int value, bool an
 void GameControllerPrivate::createRandomTile()
 {
     QList<int> indexes;
-    int cellsCount = m_cells.size();
 
-    for (int i = 0; i < cellsCount; ++i) {
-        const auto &cell = m_cells.at(i);
+    for (const auto &cell : m_cells) {
         if (!cell->tile()) {
-            indexes.append(i);
+            indexes.append(cell->index());
         }
     }
 
@@ -211,165 +207,6 @@ void GameControllerPrivate::setOrphanedTile(const Tile_ptr &tile)
         tile->resetValue();
         m_orphanedTiles.append(tile);
     }
-}
-
-
-void GameControllerPrivate::moveTiles()
-{
-    Q_ASSERT(MoveDirection::None != m_moveDirection);
-
-    if (m_moveBlocked) {
-        return;
-    }
-
-    int rows = 0;
-    int columns = 0;
-
-    switch (m_moveDirection) {
-    case MoveDirection::Left:
-    case MoveDirection::Right:
-        rows = m_game->gameboardRows();
-        columns = m_game->gameboardColumns();
-        break;
-    case MoveDirection::Up:
-    case MoveDirection::Down:
-        rows = m_game->gameboardColumns();
-        columns = m_game->gameboardRows();
-        break;
-    case MoveDirection::None:
-        Q_ASSERT(false);
-        return;
-    }
-
-    for (int row = 0; row < rows; ++row) {
-        int firstCellIndex = 0;
-        int neighborCellsIndexDelta = 0;
-
-        switch (m_moveDirection) {
-        case MoveDirection::Left:
-            firstCellIndex = row * columns;
-            neighborCellsIndexDelta = 1;
-            break;
-        case MoveDirection::Right:
-            firstCellIndex = row * columns + columns - 1;
-            neighborCellsIndexDelta = 1;
-            break;
-        case MoveDirection::Up:
-            firstCellIndex = row;
-            neighborCellsIndexDelta = rows;
-            break;
-        case MoveDirection::Down:
-            firstCellIndex = columns * (rows - 1) + row;
-            neighborCellsIndexDelta = rows;
-            break;
-        case MoveDirection::None:
-            Q_ASSERT(false);
-            break;
-        }
-
-        int previousCellIndex = firstCellIndex;
-
-        for (int column = 1; column < columns; ++column) {
-            int cellIndex = 0;
-            switch (m_moveDirection) {
-            case MoveDirection::Left:
-                cellIndex = firstCellIndex + column;
-                break;
-            case MoveDirection::Right:
-                cellIndex = firstCellIndex - column;
-                break;
-            case MoveDirection::Up:
-                cellIndex = column * rows + row;
-                break;
-            case MoveDirection::Down:
-                cellIndex = columns * (rows - 1) - column * rows + row;
-                break;
-            case MoveDirection::None:
-                Q_ASSERT(false);
-                break;
-            }
-
-            const auto &cell = m_cells.at(cellIndex);
-
-            if (!cell->tile()) {
-                continue;
-            }
-
-            auto previousCell = m_cells.at(previousCellIndex);
-            if (!previousCell->tile()) {
-                const auto &tile = cell->tile();
-                tile->setZ(0);
-                moveTile(cell, previousCell);
-                continue;
-            }
-
-            if (previousCell->tile()->value() == cell->tile()->value()) {
-                const auto &tile = cell->tile();
-                tile->setValue(tile->value() * 2);
-                tile->setZ(previousCell->tile()->z() + 1);
-                m_aboutToOrphanedTiles.append(previousCell->tile());
-                m_tiles.removeOne(previousCell->tile());
-                moveTile(cell, previousCell);
-                switch (m_moveDirection) {
-                case MoveDirection::Left:
-                    ++previousCellIndex;
-                    break;
-                case MoveDirection::Right:
-                    --previousCellIndex;
-                    break;
-                case MoveDirection::Up:
-                    previousCellIndex += rows;
-                    break;
-                case MoveDirection::Down:
-                    previousCellIndex -= rows;
-                    break;
-                case MoveDirection::None:
-                    Q_ASSERT(false);
-                    break;
-                }
-                continue;
-            }
-
-            int cellsIndexDelta = 0;
-            switch (m_moveDirection) {
-            case MoveDirection::Left:
-            case MoveDirection::Up:
-                cellsIndexDelta = cellIndex - previousCellIndex;
-                break;
-            case MoveDirection::Right:
-            case MoveDirection::Down:
-                cellsIndexDelta = previousCellIndex - cellIndex;
-                break;
-            case MoveDirection::None:
-                Q_ASSERT(false);
-                break;
-            }
-
-            if (neighborCellsIndexDelta != cellsIndexDelta) {
-                switch (m_moveDirection) {
-                case MoveDirection::Left:
-                case MoveDirection::Up:
-                    previousCellIndex += neighborCellsIndexDelta;
-                    break;
-                case MoveDirection::Right:
-                case MoveDirection::Down:
-                    previousCellIndex -= neighborCellsIndexDelta;
-                    break;
-                case MoveDirection::None:
-                    Q_ASSERT(false);
-                    break;
-                }
-                previousCell = m_cells.at(previousCellIndex);
-                cell->tile()->setZ(0);
-                moveTile(cell, previousCell);
-                continue;
-            }
-
-            previousCellIndex = cellIndex;
-        }
-    }
-
-    setMoveBlocked(0 != m_movingTilesCount);
 }
 
 
@@ -435,12 +272,6 @@ bool GameControllerPrivate::isDefeat() const
     }
 
     return true;
-}
-
-
-void GameControllerPrivate::setMoveBlocked(bool blocked)
-{
-    m_moveBlocked = blocked;
 }
 
 
@@ -583,16 +414,167 @@ void GameController::onContinueGameRequested()
         d->saveTurn();
     }
 
-    d->setMoveBlocked(false);
+    d->m_moveBlocked = false;
 }
 
 
 void GameController::onMoveTilesRequested(MoveDirection direction)
 {
-    Q_ASSERT(MoveDirection::None != direction);
+    if (d->m_moveBlocked || MoveDirection::None == direction) {
+        return;
+    }
 
+    d->m_moveBlocked = true;
     d->m_moveDirection = direction;
-    d->moveTiles();
+
+    int rows = 0;
+    int columns = 0;
+
+    switch (direction) {
+    case MoveDirection::Left:
+    case MoveDirection::Right:
+        rows = d->m_game->gameboardRows();
+        columns = d->m_game->gameboardColumns();
+        break;
+    case MoveDirection::Up:
+    case MoveDirection::Down:
+        rows = d->m_game->gameboardColumns();
+        columns = d->m_game->gameboardRows();
+        break;
+    case MoveDirection::None:
+        Q_ASSERT(false);
+        break;
+    }
+
+    for (int row = 0; row < rows; ++row) {
+        int firstCellIndex = 0;
+        int neighborCellsIndexDelta = 0;
+
+        switch (direction) {
+        case MoveDirection::Left:
+            firstCellIndex = row * columns;
+            neighborCellsIndexDelta = 1;
+            break;
+        case MoveDirection::Right:
+            firstCellIndex = row * columns + columns - 1;
+            neighborCellsIndexDelta = 1;
+            break;
+        case MoveDirection::Up:
+            firstCellIndex = row;
+            neighborCellsIndexDelta = rows;
+            break;
+        case MoveDirection::Down:
+            firstCellIndex = columns * (rows - 1) + row;
+            neighborCellsIndexDelta = rows;
+            break;
+        case MoveDirection::None:
+            Q_ASSERT(false);
+            break;
+        }
+
+        int previousCellIndex = firstCellIndex;
+
+        for (int column = 1; column < columns; ++column) {
+            int cellIndex = 0;
+            switch (direction) {
+            case MoveDirection::Left:
+                cellIndex = firstCellIndex + column;
+                break;
+            case MoveDirection::Right:
+                cellIndex = firstCellIndex - column;
+                break;
+            case MoveDirection::Up:
+                cellIndex = column * rows + row;
+                break;
+            case MoveDirection::Down:
+                cellIndex = columns * (rows - 1) - column * rows + row;
+                break;
+            case MoveDirection::None:
+                Q_ASSERT(false);
+                break;
+            }
+
+            const auto &cell = d->m_cells.at(cellIndex);
+
+            if (!cell->tile()) {
+                continue;
+            }
+
+            auto previousCell = d->m_cells.at(previousCellIndex);
+            if (!previousCell->tile()) {
+                const auto &tile = cell->tile();
+                tile->setZ(0);
+                d->moveTile(cell, previousCell);
+                continue;
+            }
+
+            if (previousCell->tile()->value() == cell->tile()->value()) {
+                const auto &tile = cell->tile();
+                tile->setValue(tile->value() * 2);
+                tile->setZ(previousCell->tile()->z() + 1);
+                d->m_aboutToOrphanedTiles.append(previousCell->tile());
+                d->m_tiles.removeOne(previousCell->tile());
+                d->moveTile(cell, previousCell);
+                switch (direction) {
+                case MoveDirection::Left:
+                    ++previousCellIndex;
+                    break;
+                case MoveDirection::Right:
+                    --previousCellIndex;
+                    break;
+                case MoveDirection::Up:
+                    previousCellIndex += rows;
+                    break;
+                case MoveDirection::Down:
+                    previousCellIndex -= rows;
+                    break;
+                case MoveDirection::None:
+                    Q_ASSERT(false);
+                    break;
+                }
+                continue;
+            }
+
+            int cellsIndexDelta = 0;
+            switch (direction) {
+            case MoveDirection::Left:
+            case MoveDirection::Up:
+                cellsIndexDelta = cellIndex - previousCellIndex;
+                break;
+            case MoveDirection::Right:
+            case MoveDirection::Down:
+                cellsIndexDelta = previousCellIndex - cellIndex;
+                break;
+            case MoveDirection::None:
+                Q_ASSERT(false);
+                break;
+            }
+
+            if (neighborCellsIndexDelta != cellsIndexDelta) {
+                switch (direction) {
+                case MoveDirection::Left:
+                case MoveDirection::Up:
+                    previousCellIndex += neighborCellsIndexDelta;
+                    break;
+                case MoveDirection::Right:
+                case MoveDirection::Down:
+                    previousCellIndex -= neighborCellsIndexDelta;
+                    break;
+                case MoveDirection::None:
+                    Q_ASSERT(false);
+                    break;
+                }
+                previousCell = d->m_cells.at(previousCellIndex);
+                cell->tile()->setZ(0);
+                d->moveTile(cell, previousCell);
+                continue;
+            }
+
+            previousCellIndex = cellIndex;
+        }
+    }
+
+    d->m_moveBlocked = (0 != d->m_movingTilesCount);
 }
 
 
@@ -638,7 +620,7 @@ void GameController::onTileMoveFinished()
         }
 
         if (!moveBlocked) {
-            d->setMoveBlocked(false);
+            d->m_moveBlocked = false;
         }
     }
 }
@@ -719,7 +701,7 @@ void GameController::startNewGame()
         d->saveTurn();
     }
 
-    d->setMoveBlocked(false);
+    d->m_moveBlocked = false;
 }
 
 
@@ -749,7 +731,7 @@ void GameController::restoreGame()
     }
 
     if (GameState::Win != gameState && GameState::Defeat != gameState) {
-        d->setMoveBlocked(false);
+        d->m_moveBlocked = false;
     }
 
     d->m_restoredTiles.clear();
