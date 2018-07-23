@@ -44,7 +44,7 @@ class Gameboard final : public QObject
 {
     Q_OBJECT
 public:
-    explicit Gameboard(QQuickItem *gameboardQuickItem, QObject *parent = nullptr);
+    explicit Gameboard(QQuickItem *gameboardItem, QObject *parent = nullptr);
     ~Gameboard();
 
     int rows() const;
@@ -67,8 +67,8 @@ public slots:
 private slots:
     void onRowsChanged(int rows);
     void onColumnsChanged(int columns);
-    void onCellItemAdded(int index, QQuickItem *item);
-    void onCellItemRemoved(int index, QQuickItem *item);
+    void onCellItemAdded(int index, QQuickItem *cellItem);
+    void onCellItemRemoved(int index, QQuickItem *cellItem);
 
 private:
     Q_DISABLE_COPY(Gameboard)

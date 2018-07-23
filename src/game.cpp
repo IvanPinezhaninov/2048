@@ -57,8 +57,8 @@ public:
 
     Game *const q;
     QQmlApplicationEngine *const m_qmlEngine;
-    QQuickWindow *m_windowQuickItem;
-    QQuickItem *m_gameQuickItem;
+    QQuickWindow *m_windowItem;
+    QQuickItem *m_gameItem;
     std::unique_ptr<Gameboard> m_gameboard;
     int m_score;
     int m_bestScore;
@@ -70,8 +70,8 @@ public:
 GamePrivate::GamePrivate(Game *parent, QQmlApplicationEngine *qmlEngine) :
     q(parent),
     m_qmlEngine(qmlEngine),
-    m_windowQuickItem(nullptr),
-    m_gameQuickItem(nullptr),
+    m_windowItem(nullptr),
+    m_gameItem(nullptr),
     m_score(0),
     m_bestScore(0),
     m_gameState(GameState::Init),
@@ -130,41 +130,41 @@ bool Game::isReady() const
 
 void Game::setGeometry(const QRect &rect)
 {
-    Q_ASSERT(nullptr != d->m_windowQuickItem);
+    Q_ASSERT(nullptr != d->m_windowItem);
 
-    d->m_windowQuickItem->setGeometry(rect);
+    d->m_windowItem->setGeometry(rect);
 }
 
 
 void Game::setGeometry(int x, int y, int w, int h)
 {
-    Q_ASSERT(nullptr != d->m_windowQuickItem);
+    Q_ASSERT(nullptr != d->m_windowItem);
 
-    d->m_windowQuickItem->setGeometry(x, y, w, h);
+    d->m_windowItem->setGeometry(x, y, w, h);
 }
 
 
 QRect Game::geometry() const
 {
-    Q_ASSERT(nullptr != d->m_windowQuickItem);
+    Q_ASSERT(nullptr != d->m_windowItem);
 
-    return d->m_windowQuickItem->geometry();
+    return d->m_windowItem->geometry();
 }
 
 
 bool Game::isVisible() const
 {
-    Q_ASSERT(nullptr != d->m_windowQuickItem);
+    Q_ASSERT(nullptr != d->m_windowItem);
 
-    return d->m_windowQuickItem->isVisible();
+    return d->m_windowItem->isVisible();
 }
 
 
 Qt::WindowState Game::windowState() const
 {
-    Q_ASSERT(nullptr != d->m_windowQuickItem);
+    Q_ASSERT(nullptr != d->m_windowItem);
 
-    return d->m_windowQuickItem->windowState();
+    return d->m_windowItem->windowState();
 }
 
 
@@ -172,9 +172,9 @@ Qt::WindowState Game::windowState() const
 
 Qt::WindowStates Game::windowStates() const
 {
-    Q_ASSERT(nullptr != d->m_windowQuickItem);
+    Q_ASSERT(nullptr != d->m_windowItem);
 
-    return d->m_windowQuickItem->windowStates();
+    return d->m_windowItem->windowStates();
 }
 
 #endif
@@ -224,56 +224,56 @@ QQuickItem *Game::tilesParent() const
 
 void Game::showFullScreen()
 {
-    Q_ASSERT(nullptr != d->m_windowQuickItem);
+    Q_ASSERT(nullptr != d->m_windowItem);
 
-    d->m_windowQuickItem->showFullScreen();
+    d->m_windowItem->showFullScreen();
 }
 
 
 void Game::showMaximized()
 {
-    Q_ASSERT(nullptr != d->m_windowQuickItem);
+    Q_ASSERT(nullptr != d->m_windowItem);
 
-    d->m_windowQuickItem->showMaximized();
+    d->m_windowItem->showMaximized();
 }
 
 
 void Game::showMinimized()
 {
-    Q_ASSERT(nullptr != d->m_windowQuickItem);
+    Q_ASSERT(nullptr != d->m_windowItem);
 
-    d->m_windowQuickItem->showMinimized();
+    d->m_windowItem->showMinimized();
 }
 
 
 void Game::showNormal()
 {
-    Q_ASSERT(nullptr != d->m_windowQuickItem);
+    Q_ASSERT(nullptr != d->m_windowItem);
 
-    d->m_windowQuickItem->showNormal();
+    d->m_windowItem->showNormal();
 }
 
 
 void Game::show()
 {
-    Q_ASSERT(nullptr != d->m_windowQuickItem);
+    Q_ASSERT(nullptr != d->m_windowItem);
 
-    d->m_windowQuickItem->show();
+    d->m_windowItem->show();
 }
 
 void Game::setVisible(bool visible)
 {
-    Q_ASSERT(nullptr != d->m_windowQuickItem);
+    Q_ASSERT(nullptr != d->m_windowItem);
 
-    d->m_windowQuickItem->setVisible(visible);
+    d->m_windowItem->setVisible(visible);
 }
 
 
 void Game::setWindowState(Qt::WindowState state)
 {
-    Q_ASSERT(nullptr != d->m_windowQuickItem);
+    Q_ASSERT(nullptr != d->m_windowItem);
 
-    d->m_windowQuickItem->setWindowState(state);
+    d->m_windowItem->setWindowState(state);
 }
 
 
@@ -282,9 +282,9 @@ void Game::setWindowState(Qt::WindowState state)
 
 void Game::setWindowStates(Qt::WindowStates states)
 {
-    Q_ASSERT(nullptr != d->m_windowQuickItem);
+    Q_ASSERT(nullptr != d->m_windowItem);
 
-    d->m_windowQuickItem->setWindowStates(states);
+    d->m_windowItem->setWindowStates(states);
 }
 
 #endif
@@ -352,7 +352,7 @@ void Game::setGameState(GameState state)
             break;
         }
 
-        d->m_gameQuickItem->setProperty(GAME_STATE_PROPERTY_NAME, stateName);
+        d->m_gameItem->setProperty(GAME_STATE_PROPERTY_NAME, stateName);
 
         emit gameStateChanged(state);
     }
@@ -394,15 +394,15 @@ void Game::onRootObjectCreated(QObject *object, const QUrl &url)
 {
     Q_UNUSED(url)
 
-    d->m_windowQuickItem = q_check_ptr(qobject_cast<QQuickWindow*>(object));
-    d->m_windowQuickItem->installEventFilter(this);
+    d->m_windowItem = q_check_ptr(qobject_cast<QQuickWindow*>(object));
+    d->m_windowItem->installEventFilter(this);
 
-    d->m_gameQuickItem = q_check_ptr(object->findChild<QQuickItem*>(QLatin1Literal(GAME_OBJECT_NAME)));
-    connect(d->m_gameQuickItem, SIGNAL(continueGameRequested()), this, SIGNAL(continueGameRequested()));
-    connect(d->m_gameQuickItem, SIGNAL(startNewGameRequested()), this, SIGNAL(startNewGameRequested()));
+    d->m_gameItem = q_check_ptr(object->findChild<QQuickItem*>(QLatin1Literal(GAME_OBJECT_NAME)));
+    connect(d->m_gameItem, SIGNAL(continueGameRequested()), this, SIGNAL(continueGameRequested()));
+    connect(d->m_gameItem, SIGNAL(startNewGameRequested()), this, SIGNAL(startNewGameRequested()));
 
-    QQuickItem *gameboardQuickItem = q_check_ptr(d->m_gameQuickItem->findChild<QQuickItem*>(QLatin1Literal(GAMEBOARD_OBJECT_NAME)));
-    d->m_gameboard = std::make_unique<Gameboard>(gameboardQuickItem);
+    QQuickItem *gameboardItem = q_check_ptr(d->m_gameItem->findChild<QQuickItem*>(QLatin1Literal(GAMEBOARD_OBJECT_NAME)));
+    d->m_gameboard = std::make_unique<Gameboard>(gameboardItem);
     connect(d->m_gameboard.get(), &Gameboard::sizeChanged, this, &Game::gameboardSizeChanged);
     connect(d->m_gameboard.get(), &Gameboard::rowsChanged, this, &Game::gameboardRowsChanged);
     connect(d->m_gameboard.get(), &Gameboard::columnsChanged, this, &Game::gameboardColumnsChanged);
@@ -415,9 +415,9 @@ void Game::onRootObjectCreated(QObject *object, const QUrl &url)
 
 void Game::onScoreChanged(int score)
 {
-    Q_ASSERT(nullptr != d->m_gameQuickItem);
+    Q_ASSERT(nullptr != d->m_gameItem);
 
-    d->m_gameQuickItem->setProperty(SCORE_PROPERTY_NAME, score);
+    d->m_gameItem->setProperty(SCORE_PROPERTY_NAME, score);
 
     if (d->m_bestScore < score) {
         setBestScore(score);
@@ -427,9 +427,9 @@ void Game::onScoreChanged(int score)
 
 void Game::onBestScoreChanged(int score)
 {
-    Q_ASSERT(nullptr != d->m_gameQuickItem);
+    Q_ASSERT(nullptr != d->m_gameItem);
 
-    d->m_gameQuickItem->setProperty(BEST_SCORE_PROPERTY_NAME, score);
+    d->m_gameItem->setProperty(BEST_SCORE_PROPERTY_NAME, score);
 }
 
 } // namespace Internal

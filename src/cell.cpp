@@ -29,17 +29,15 @@
 namespace Game {
 namespace Internal {
 
-Cell::Cell(int index, QQuickItem *cellQuickItem, QObject *parent) :
+Cell::Cell(int index, QQuickItem *cellItem, QObject *parent) :
     QObject(parent),
     m_index(index),
-    m_cellQuickItem(cellQuickItem)
+    m_cellItem(cellItem)
 {
-    Q_ASSERT(m_cellQuickItem != nullptr);
-
-    connect(m_cellQuickItem, &QQuickItem::xChanged, this, &Cell::onXChanged);
-    connect(m_cellQuickItem, &QQuickItem::yChanged, this, &Cell::onYChanged);
-    connect(m_cellQuickItem, &QQuickItem::widthChanged, this, &Cell::onWidthChanged);
-    connect(m_cellQuickItem, &QQuickItem::heightChanged, this, &Cell::onHeightChanged);
+    connect(m_cellItem, &QQuickItem::xChanged, this, &Cell::onXChanged);
+    connect(m_cellItem, &QQuickItem::yChanged, this, &Cell::onYChanged);
+    connect(m_cellItem, &QQuickItem::widthChanged, this, &Cell::onWidthChanged);
+    connect(m_cellItem, &QQuickItem::heightChanged, this, &Cell::onHeightChanged);
 }
 
 
@@ -57,25 +55,25 @@ Tile_ptr Cell::tile() const
 
 qreal Cell::x() const
 {
-    return m_cellQuickItem->x();
+    return m_cellItem->x();
 }
 
 
 qreal Cell::y() const
 {
-    return m_cellQuickItem->y();
+    return m_cellItem->y();
 }
 
 
 qreal Cell::width() const
 {
-    return m_cellQuickItem->width();
+    return m_cellItem->width();
 }
 
 
 qreal Cell::height() const
 {
-    return m_cellQuickItem->height();
+    return m_cellItem->height();
 }
 
 
@@ -97,25 +95,25 @@ void Cell::setTile(const Tile_ptr &tile)
 
 void Cell::onXChanged()
 {
-    emit xChanged(m_cellQuickItem->x());
+    emit xChanged(m_cellItem->x());
 }
 
 
 void Cell::onYChanged()
 {
-    emit yChanged(m_cellQuickItem->y());
+    emit yChanged(m_cellItem->y());
 }
 
 
 void Cell::onWidthChanged()
 {
-    emit widthChanged(m_cellQuickItem->width());
+    emit widthChanged(m_cellItem->width());
 }
 
 
 void Cell::onHeightChanged()
 {
-    emit heightChanged(m_cellQuickItem->height());
+    emit heightChanged(m_cellItem->height());
 }
 
 } // namespace Internal

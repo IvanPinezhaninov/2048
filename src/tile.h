@@ -28,7 +28,6 @@
 #include <memory>
 
 QT_BEGIN_NAMESPACE
-class QQmlComponent;
 class QQuickItem;
 QT_END_NAMESPACE
 
@@ -43,7 +42,7 @@ class Tile final : public QObject, public std::enable_shared_from_this<Tile>
 {
     Q_OBJECT
 public:
-    Tile(int id, QQmlComponent *tileQmlComponent, QQuickItem *parent, bool animation = true);
+    Tile(int id, QQuickItem *tileItem, QQuickItem *parent, bool animation = true);
     ~Tile();
 
     int id() const;
@@ -74,7 +73,7 @@ private:
 
     void move(const QRectF &location);
 
-    const std::unique_ptr<QQuickItem> m_tileQuickItem;
+    const std::unique_ptr<QQuickItem> m_tileItem;
     int m_id;
     int m_value;
     std::weak_ptr<Cell> m_cell;

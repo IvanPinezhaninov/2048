@@ -39,11 +39,11 @@ namespace Internal {
 class GameboardPrivate final
 {
 public:
-    GameboardPrivate(QQuickItem *gameboardQuickItem);
+    GameboardPrivate(QQuickItem *gameboardItem);
 
-    QQuickItem *const m_gameboardQuickItem;
-    QQuickItem *const m_gridQuickItem;
-    QQuickItem *const m_repeaterQuickItem;
+    QQuickItem *const m_gameboardItem;
+    QQuickItem *const m_gridItem;
+    QQuickItem *const m_repeaterItem;
 
     int m_rows;
     int m_columns;
@@ -51,27 +51,27 @@ public:
 };
 
 
-GameboardPrivate::GameboardPrivate(QQuickItem *gameboardQuickItem) :
-    m_gameboardQuickItem(gameboardQuickItem),
-    m_gridQuickItem(q_check_ptr(gameboardQuickItem->findChild<QQuickItem*>(QLatin1Literal(CELLS_GRID_OBJECT_NAME)))),
-    m_repeaterQuickItem(q_check_ptr(gameboardQuickItem->findChild<QQuickItem*>(QLatin1Literal(CELLS_REPEATER_OBJECT_NAME)))),
+GameboardPrivate::GameboardPrivate(QQuickItem *gameboardItem) :
+    m_gameboardItem(gameboardItem),
+    m_gridItem(q_check_ptr(gameboardItem->findChild<QQuickItem*>(QLatin1Literal(CELLS_GRID_OBJECT_NAME)))),
+    m_repeaterItem(q_check_ptr(gameboardItem->findChild<QQuickItem*>(QLatin1Literal(CELLS_REPEATER_OBJECT_NAME)))),
     m_rows(0),
     m_columns(0)
 {
 #ifdef QT_DEBUG
-  m_gameboardQuickItem->setProperty(DEBUG_PROPERTY_NAME, true);
+  m_gameboardItem->setProperty(DEBUG_PROPERTY_NAME, true);
 #endif
 }
 
 
-Gameboard::Gameboard(QQuickItem *gameboardQuickItem, QObject *parent) :
+Gameboard::Gameboard(QQuickItem *gameboardItem, QObject *parent) :
     QObject(parent),
-    d(std::make_unique<GameboardPrivate>(gameboardQuickItem))
+    d(std::make_unique<GameboardPrivate>(gameboardItem))
 {
     connect(this, &Gameboard::rowsChanged, this, &Gameboard::onRowsChanged);
     connect(this, &Gameboard::columnsChanged, this, &Gameboard::onColumnsChanged);
-    connect(d->m_repeaterQuickItem, SIGNAL(itemAdded(int,QQuickItem*)), this, SLOT(onCellItemAdded(int,QQuickItem*)));
-    connect(d->m_repeaterQuickItem, SIGNAL(itemRemoved(int,QQuickItem*)), this, SLOT(onCellItemAdded(int,QQuickItem*)));
+    connect(d->m_repeaterItem, SIGNAL(itemAdded(int,QQuickItem*)), this, SLOT(onCellItemAdded(int,QQuickItem*)));
+    connect(d->m_repeaterItem, SIGNAL(itemRemoved(int,QQuickItem*)), this, SLOT(onCellItemAdded(int,QQuickItem*)));
 }
 
 
@@ -100,7 +100,7 @@ QList<Cell_ptr> Gameboard::cells() const
 
 QQuickItem *Gameboard::tilesParent() const
 {
-    return d->m_gridQuickItem;
+    return d->m_gridItem;
 }
 
 
@@ -147,30 +147,30 @@ void Gameboard::setSize(int rows, int columns)
 
 void Gameboard::onRowsChanged(int rows)
 {
-    Q_ASSERT(nullptr != d->m_gameboardQuickItem);
+    Q_ASSERT(nullptr != d->m_gameboardItem);
 
-    d->m_gameboardQuickItem->setProperty(ROWS_PROPERTY_NAME, rows);
+    d->m_gameboardItem->setProperty(ROWS_PROPERTY_NAME, rows);
 }
 
 
 void Gameboard::onColumnsChanged(int columns)
 {
-    Q_ASSERT(nullptr != d->m_gameboardQuickItem);
+    Q_ASSERT(nullptr != d->m_gameboardItem);
 
-    d->m_gameboardQuickItem->setProperty(COLUMNS_PROPERTY_NAME, columns);
+    d->m_gameboardItem->setProperty(COLUMNS_PROPERTY_NAME, columns);
 }
 
 
-void Gameboard::onCellItemAdded(int index, QQuickItem *item)
+void Gameboard::onCellItemAdded(int index, QQuickItem *cellItem)
 {
-    d->m_cells.insert(index, std::make_shared<Cell>(index, item));
+    d->m_cells.insert(index, std::make_shared<Cell>(index, cellItem));
     emit cellsChanged();
 }
 
 
-void Gameboard::onCellItemRemoved(int index, QQuickItem *item)
+void Gameboard::onCellItemRemoved(int index, QQuickItem *cellItem)
 {
-    Q_UNUSED(item)
+    Q_UNUSED(cellItem)
 
     d->m_cells.remove(index);
     emit cellsChanged();

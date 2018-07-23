@@ -23,8 +23,6 @@
 #include "cell.h"
 #include "tile.h"
 
-#include <QRectF>
-#include <QQmlComponent>
 #include <QQuickItem>
 
 static const char *const X_PROPERTY_NAME = "x";
@@ -37,18 +35,18 @@ static const char *const VALUE_PROPERTY_NAME = "value";
 namespace Game {
 namespace Internal {
 
-Tile::Tile(int id, QQmlComponent *tileQmlComponent, QQuickItem *parent, bool animation) :
+Tile::Tile(int id, QQuickItem* tileItem, QQuickItem *parent, bool animation) :
     QObject(parent),
-    m_tileQuickItem(qobject_cast<QQuickItem*>(tileQmlComponent->create())),
+    m_tileItem(tileItem),
     m_id(id),
     m_value(0)
 {
     if (!animation) {
-        m_tileQuickItem->setProperty(VALUE_PROPERTY_NAME, -1);
+        m_tileItem->setProperty(VALUE_PROPERTY_NAME, -1);
     }
 
-    m_tileQuickItem->setParentItem(parent);
-    connect(m_tileQuickItem.get(), SIGNAL(moveFinished()), this, SLOT(onMoveFinished()));
+    m_tileItem->setParentItem(parent);
+    connect(m_tileItem.get(), SIGNAL(moveFinished()), this, SLOT(onMoveFinished()));
 }
 
 
@@ -78,7 +76,7 @@ int Tile::value() const
 void Tile::setValue(int value)
 {
     if (0 == m_value) {
-        m_tileQuickItem->setProperty(VALUE_PROPERTY_NAME, value);
+        m_tileItem->setProperty(VALUE_PROPERTY_NAME, value);
     }
 
     m_value = value;
@@ -88,7 +86,7 @@ void Tile::setValue(int value)
 void Tile::resetValue()
 {
     m_value = 0;
-    m_tileQuickItem->setProperty(VALUE_PROPERTY_NAME, 0);
+    m_tileItem->setProperty(VALUE_PROPERTY_NAME, 0);
 }
 
 
@@ -127,53 +125,53 @@ void Tile::setCell(const Cell_ptr &cell)
 
 qreal Tile::z() const
 {
-    return m_tileQuickItem->z();
+    return m_tileItem->z();
 }
 
 
 void Tile::onCellXChanged(qreal x)
 {
-    m_tileQuickItem->setX(x);
+    m_tileItem->setX(x);
 }
 
 
 void Tile::onCellYChanged(qreal y)
 {
-    m_tileQuickItem->setY(y);
+    m_tileItem->setY(y);
 }
 
 
 void Tile::setZ(qreal z)
 {
-    m_tileQuickItem->setZ(z);
+    m_tileItem->setZ(z);
 }
 
 
 void Tile::onCellWidthChanged(qreal width)
 {
-    m_tileQuickItem->setWidth(width);
+    m_tileItem->setWidth(width);
 }
 
 
 void Tile::onCellHeightChanged(qreal height)
 {
-    m_tileQuickItem->setHeight(height);
+    m_tileItem->setHeight(height);
 }
 
 
 void Tile::onMoveFinished()
 {
-    m_tileQuickItem->setProperty(VALUE_PROPERTY_NAME, m_value);
+    m_tileItem->setProperty(VALUE_PROPERTY_NAME, m_value);
     emit moveFinished();
 }
 
 
 void Tile::move(const QRectF &location)
 {
-    m_tileQuickItem->setProperty(X_PROPERTY_NAME, location.x());
-    m_tileQuickItem->setProperty(Y_PROPERTY_NAME, location.y());
-    m_tileQuickItem->setProperty(WIDTH_PROPERTY_NAME, location.width());
-    m_tileQuickItem->setProperty(HEIGHT_PROPERTY_NAME, location.height());
+    m_tileItem->setProperty(X_PROPERTY_NAME, location.x());
+    m_tileItem->setProperty(Y_PROPERTY_NAME, location.y());
+    m_tileItem->setProperty(WIDTH_PROPERTY_NAME, location.width());
+    m_tileItem->setProperty(HEIGHT_PROPERTY_NAME, location.height());
 }
 
 } // namespace Internal

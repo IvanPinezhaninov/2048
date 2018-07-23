@@ -30,6 +30,7 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlComponent>
+#include <QQuickItem>
 #include <QScreen>
 #include <QSettings>
 #include <QTimer>
@@ -161,7 +162,8 @@ void GameControllerPrivate::createTile(int id, int cellIndex, int value, bool an
     Tile_ptr tile;
 
     if (m_orphanedTiles.empty()) {
-        tile = std::make_shared<Tile>(id, m_tileQmlComponent.get(), q_check_ptr(m_game->tilesParent()), animation);
+        auto tileItem = q_check_ptr(qobject_cast<QQuickItem*>(m_tileQmlComponent->create()));
+        tile = std::make_shared<Tile>(id, tileItem, q_check_ptr(m_game->tilesParent()), animation);
         QObject::connect(tile.get(), &Tile::moveFinished, q, &GameController::onTileMoveFinished);
     } else {
         tile = m_orphanedTiles.takeLast();

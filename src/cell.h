@@ -43,7 +43,7 @@ class Cell final : public QObject, public std::enable_shared_from_this<Cell>
 {
     Q_OBJECT
 public:
-    Cell(int index, QQuickItem *cellQuickItem, QObject *parent = nullptr);
+    Cell(int index, QQuickItem *cellItem, QObject *parent = nullptr);
 
     int index() const;
     Tile_ptr tile() const;
@@ -72,7 +72,7 @@ private:
     Q_DISABLE_COPY(Cell)
 
     const int m_index;
-    QQuickItem *const m_cellQuickItem;
+    QQuickItem *const m_cellItem;
     std::weak_ptr<Tile> m_tile;
 };
 

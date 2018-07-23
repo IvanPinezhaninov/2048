@@ -722,15 +722,15 @@ int StorageWorker::moveDirectionToInt(MoveDirection moveDirection) const
 {
   switch (moveDirection) {
   case MoveDirection::None:
-    return MOVE_DIRECTION_NONE_VALUE;
+      return MOVE_DIRECTION_NONE_VALUE;
   case MoveDirection::Left:
-    return MOVE_DIRECTION_LEFT_VALUE;
+      return MOVE_DIRECTION_LEFT_VALUE;
   case MoveDirection::Right:
-    return MOVE_DIRECTION_RIGHT_VALUE;
+      return MOVE_DIRECTION_RIGHT_VALUE;
   case MoveDirection::Up:
-    return MOVE_DIRECTION_UP_VALUE;
+      return MOVE_DIRECTION_UP_VALUE;
   case MoveDirection::Down:
-    return MOVE_DIRECTION_DOWN_VALUE;
+      return MOVE_DIRECTION_DOWN_VALUE;
   }
 }
 
