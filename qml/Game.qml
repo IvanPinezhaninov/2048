@@ -103,17 +103,34 @@ Item {
         anchors.left: gameboard.left
         anchors.verticalCenter: newGameButton.verticalCenter
         anchors.verticalCenterOffset: Math.round(font.pixelSize * Constants.textVerticalOffsetRatio)
+        visible: 0.0 !== opacity
         font.family: Constants.fontFamily
         font.pixelSize: 18
         color: '#776e65'
         text: qsTr('Join the numbers and get to the <b>2048 tile!</b>')
+        Behavior on opacity { NumberAnimation { duration: 200 } }
+    }
+
+    Button {
+        id: undoButton
+
+        objectName: 'UndoButton'
+        anchors.left: gameboard.left
+        anchors.verticalCenter: newGameButton.verticalCenter
+        visible: 0.0 !== opacity
+        opacity: 0.0
+        width: 80
+        text: qsTr('Undo')
+        onClicked: console.log('Coming soon!')
+        Behavior on opacity { NumberAnimation { duration: 200 } }
     }
 
     Button {
         id: newGameButton
 
-        anchors.top: titleText.bottom
         anchors.right: gameboard.right
+        anchors.top: scoreLabel.bottom
+        anchors.topMargin: 20
         text: qsTr('New Game')
         onClicked: startNewGameRequested()
     }
@@ -131,10 +148,28 @@ Item {
     Gameboard {
         id: gameboard
 
-        anchors.centerIn: gameboardContainer
+        anchors.top: gameboardContainer.top
+        anchors.horizontalCenter: gameboardContainer.horizontalCenter
         width: Math.min(gameboardContainer.width, gameboardContainer.height)
         height: width
         focus: true
+    }
+
+    Text {
+        id: rulesText
+
+        anchors.left: gameboard.left
+        anchors.right: gameboard.right
+        anchors.top: gameboard.bottom
+        anchors.topMargin: 20
+
+        font.family: Constants.fontFamily
+        font.pixelSize: 18
+        color: '#776e65'
+        wrapMode: Text.WordWrap
+
+        text: qsTr('<b>HOW TO PLAY:</b> Use your <b>arrow keys</b> to move the tiles. '
+                   + 'When two tiles with the same number touch, they <b>merge into one!</b>')
     }
 
     Loader {

@@ -28,9 +28,10 @@ Window {
 
     objectName: 'mainWindow'
     width: minimumWidth
-    height: minimumHeight
-    minimumWidth: 520
-    minimumHeight: 660
+    height: 710
+
+    minimumWidth: 505
+    minimumHeight: 645
 
     Rectangle {
         id: background
@@ -45,5 +46,6 @@ Window {
 
         anchors.fill: parent
         anchors.margins: 10
+        anchors.topMargin: 15
     }
 }

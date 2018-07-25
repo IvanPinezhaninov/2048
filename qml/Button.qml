@@ -80,7 +80,7 @@ Rectangle {
         id: buttonText
 
         anchors.centerIn: parent
-        anchors.verticalCenterOffset: font.pixelSize * Constants.buttonTextVerticalOffsetRatio
+        anchors.verticalCenterOffset: Math.round(font.pixelSize * -0.075)
         font.family: Constants.fontFamily
         font.pixelSize: 18
         font.weight: Font.Bold
