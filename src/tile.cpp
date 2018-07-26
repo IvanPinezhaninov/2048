@@ -35,7 +35,7 @@ static const char *const VALUE_PROPERTY_NAME = "value";
 namespace Game {
 namespace Internal {
 
-Tile::Tile(int id, QQuickItem* tileItem, QQuickItem *parent, bool animation) :
+Tile::Tile(int id, QQuickItem *tileItem, QQuickItem *parent, bool animation) :
     QObject(parent),
     m_tileItem(tileItem),
     m_id(id),
@@ -106,7 +106,7 @@ void Tile::setCell(const Cell_ptr &cell)
             connect(cell.get(), &Cell::yChanged, this, &Tile::onCellYChanged);
             connect(cell.get(), &Cell::widthChanged, this, &Tile::onCellWidthChanged);
             connect(cell.get(), &Cell::heightChanged, this, &Tile::onCellHeightChanged);
-            move({ cell->x(), cell->y(), cell->width(), cell->height() });
+            move(QRectF(cell->x(), cell->y(), cell->width(), cell->height()));
         } else {
             cell->setTile(tile);
         }

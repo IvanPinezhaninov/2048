@@ -9,21 +9,21 @@ CREATE TABLE IF NOT EXISTS games
                            game_state INTEGER NOT NULL DEFAULT 1);
 
 CREATE TABLE IF NOT EXISTS turns
-                          (turn_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                          (turn_id INTEGER PRIMARY KEY NOT NULL,
                            turn_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                           game_id INTEGER NOT NULL,
-                           parent_turn_id INTEGER NOT NULL,
                            move_direction INTEGER NOT NULL,
                            score INTEGER NOT NULL,
-                           best_score INTEGER NOT NULL,
-                           FOREIGN KEY (game_id) REFERENCES games(game_id));
+                           best_score INTEGER NOT NULL);
 
 CREATE TABLE IF NOT EXISTS tiles
-                          (tile_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                           turn_id INTEGER NOT NULL,
-                           tile_spec_id INTEGER NOT NULL,
-                           tile_spec_cell INTEGER NOT NULL,
-                           tile_spec_value INTEGER NOT NULL,
+                          (turn_id INTEGER NOT NULL,
+                           tile_id INTEGER INTEGER NOT NULL,
+                           tile_value INTEGER NOT NULL,
+                           cell_index INTEGER NOT NULL,
                            FOREIGN KEY (turn_id) REFERENCES turns(turn_id));
+
+CREATE INDEX tiles_turn_id ON tiles(turn_id);
+
+CREATE INDEX tiles_cell_index ON tiles(cell_index);
 
 PRAGMA user_version = 1;

@@ -29,7 +29,7 @@
 namespace Game {
 namespace Internal {
 
-enum class MoveDirection : quint8
+enum class MoveDirection
 {
     None,
     Left,

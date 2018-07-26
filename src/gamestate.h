@@ -29,7 +29,7 @@
 namespace Game {
 namespace Internal {
 
-enum class GameState : quint8
+enum class GameState
 {
     Init,
     Play,

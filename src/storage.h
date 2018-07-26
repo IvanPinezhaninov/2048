@@ -23,13 +23,13 @@
 #ifndef STORAGE_H
 #define STORAGE_H
 
-#include "gamespec.h"
-#include "tilespec.h"
-#include "turnspec.h"
-
 #include <memory>
 
 #include <QObject>
+
+#include "gamespec.h"
+#include "tilespec.h"
+#include "turnspec.h"
 
 
 namespace Game {
@@ -59,7 +59,7 @@ signals:
     void storageReady();
     void storageError();
 
-    void gameCreated();
+    void gameCreated(const GameSpec &game);
     void createGameError();
 
     void turnSaved();

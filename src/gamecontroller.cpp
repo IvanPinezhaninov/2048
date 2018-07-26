@@ -58,9 +58,7 @@ static const int WINNING_VALUE = 2048;
 namespace Game {
 
 using Game = Internal::Game;
-using GameSpec = Internal::GameSpec;
 using GameState = Internal::GameState;
-using MoveDirection = Internal::MoveDirection;
 using Storage = Internal::Storage;
 using StorageState = Internal::Storage::StorageState;
 using Tile = Internal::Tile;
@@ -74,7 +72,7 @@ public:
 
     qreal random();
     int nextTileId();
-    bool useStartTilesAnimation() const;
+    bool useRestoreAnimation() const;
     void createTile(int cellIndex, int value);
     void createTile(int id, int cellIndex, int value, bool animation);
     void createRandomTile();
@@ -86,6 +84,7 @@ public:
     void setGameboardSize(int rows, int columns);
     void createNewGame(int rows, int columns);
     void saveTurn();
+    QList<TileSpec> tileSpecs() const;
 
     void readSettings();
     void saveSettings();
@@ -103,6 +102,8 @@ public:
     QList<Tile_ptr> m_aboutToOrphanedTiles;
     QList<Tile_ptr> m_orphanedTiles;
     QList<TileSpec> m_restoredTiles;
+    int m_gameId;
+    int m_turnId;
     int m_tileId;
     int m_movingTilesCount;
     MoveDirection m_moveDirection;
@@ -124,6 +125,8 @@ GameControllerPrivate::GameControllerPrivate(GameController *parent) :
 #endif
   m_randomEngine(std::random_device()()),
   m_randomDistribution(0.0, 1.0),
+  m_gameId(0),
+  m_turnId(0),
   m_tileId(0),
   m_movingTilesCount(0),
   m_moveDirection(MoveDirection::None),
@@ -144,7 +147,7 @@ int GameControllerPrivate::nextTileId()
 }
 
 
-bool GameControllerPrivate::useStartTilesAnimation() const
+bool GameControllerPrivate::useRestoreAnimation() const
 {
     return (START_TILES_COUNT == m_restoredTiles.size() && 0 == m_game->score());
 }
@@ -304,12 +307,25 @@ void GameControllerPrivate::createNewGame(int rows, int columns)
 
 void GameControllerPrivate::saveTurn()
 {
+    Q_ASSERT(0 != m_gameId);
+    Q_ASSERT(0 != m_turnId);
+
+    TurnSpec turn(m_gameId, m_turnId, m_game->score(), m_game->bestScore(),
+                  m_game->gameState(), m_moveDirection, tileSpecs());
+
+    m_storage->saveTurn(turn);
+}
+
+
+QList<TileSpec> GameControllerPrivate::tileSpecs() const
+{
     QList<TileSpec> tiles;
+
     for (const auto &tile : m_tiles) {
-        tiles.append({ tile->id(), tile->cell()->index(), tile->value() });
+        tiles.append(TileSpec(tile->id(), tile->cell()->index(), tile->value()));
     }
 
-    m_storage->saveTurn({ m_moveDirection, m_game->gameState(), m_game->score(), m_game->bestScore(), tiles });
+    return tiles;
 }
 
 
@@ -576,7 +592,10 @@ void GameController::onMoveTilesRequested(MoveDirection direction)
         }
     }
 
-    d->m_moveBlocked = (0 != d->m_movingTilesCount);
+    ++d->m_turnId;
+
+    if (0 == d->m_movingTilesCount)
+      d->m_moveBlocked = false;
 }
 
 
@@ -649,8 +668,11 @@ void GameController::onStorageError()
 }
 
 
-void GameController::onGameCreated()
+void GameController::onGameCreated(const GameSpec &game)
 {
+    d->m_gameId = game.gameId();
+    d->m_turnId = game.turnId();
+
     const int delay = (GameState::Init == d->m_game->gameState()) ? SHOW_START_TILES_DELAY : 0;
     QTimer::singleShot(delay, this, SLOT(startNewGame()));
 }
@@ -663,21 +685,23 @@ void GameController::onCreateGameError()
 }
 
 
-void GameController::onGameRestored(const GameSpec &gameSpec)
+void GameController::onGameRestored(const GameSpec &game)
 {
     Q_ASSERT(GameState::Init == d->m_game->gameState());
-    Q_ASSERT(0 < gameSpec.rows() && 0 < gameSpec.columns());
-    Q_ASSERT(!gameSpec.tiles().isEmpty());
+    Q_ASSERT(0 < game.rows() && 0 < game.columns());
+    Q_ASSERT(!game.tiles().isEmpty());
     Q_ASSERT(!d->m_game->isVisible());
 
-    d->m_restoredTiles = gameSpec.tiles();
-    d->setGameboardSize(gameSpec.rows(), gameSpec.columns());
-    d->m_game->setScore(gameSpec.score());
-    d->m_game->setBestScore(gameSpec.bestScore());
-    d->m_game->setGameState(gameSpec.gameState());
+    d->m_gameId = game.gameId();
+    d->m_turnId = game.turnId();
+    d->m_restoredTiles = game.tiles();
+    d->setGameboardSize(game.rows(), game.columns());
+    d->m_game->setScore(game.score());
+    d->m_game->setBestScore(game.bestScore());
+    d->m_game->setGameState(game.gameState());
     d->m_game->show();
 
-    const int timeout = d->useStartTilesAnimation() ? SHOW_START_TILES_DELAY : 0;
+    const int timeout = d->useRestoreAnimation() ? SHOW_START_TILES_DELAY : 0;
     QTimer::singleShot(timeout, this, SLOT(restoreGame()));
 }
 
@@ -712,7 +736,7 @@ void GameController::restoreGame()
     Q_ASSERT(!d->m_restoredTiles.isEmpty());
 
     int maxValue = 0;
-    const bool animation = d->useStartTilesAnimation();
+    const bool animation = d->useRestoreAnimation();
 
     for (const auto &tile : d->m_restoredTiles) {
         d->createTile(tile.id(), tile.cell(), tile.value(), animation);

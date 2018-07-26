@@ -23,63 +23,63 @@
 #include "tilespec.h"
 #include "turnspec.h"
 
+static const int WRONG_ID = -1;
+
 
 namespace Game {
 namespace Internal {
 
-class TurnSpecPrivate
+class TurnSpecPrivate final
 {
 public:
-    TurnSpecPrivate(MoveDirection moveDirection, GameState gameState,
-                    int score, int bestScore, const QList<TileSpec> &tiles);
-    ~TurnSpecPrivate();
+    TurnSpecPrivate(int gameId, int turnId, int score, int bestScore, GameState gameState,
+                    MoveDirection moveDirection, const QList<TileSpec> &tiles = QList<TileSpec>());
 
+    int m_gameId;
+    int m_turnId;
     int m_score;
     int m_bestScore;
-    QList<TileSpec> m_tiles;
-    MoveDirection m_moveDirection;
     GameState m_gameState;
+    MoveDirection m_moveDirection;
+    QList<TileSpec> m_tiles;
 };
 
 
-TurnSpecPrivate::TurnSpecPrivate(MoveDirection moveDirection, GameState gameState,
-                                 int score, int bestScore, const QList<TileSpec> &tiles) :
+TurnSpecPrivate::TurnSpecPrivate(int gameId, int turnId, int score, int bestScore, GameState gameState,
+                                 MoveDirection moveDirection, const QList<TileSpec> &tiles) :
+    m_gameId(gameId),
+    m_turnId(turnId),
     m_score(score),
     m_bestScore(bestScore),
-    m_tiles(tiles),
+    m_gameState(gameState),
     m_moveDirection(moveDirection),
-    m_gameState(gameState)
-{
-}
-
-
-TurnSpecPrivate::~TurnSpecPrivate()
+    m_tiles(tiles)
 {
 }
 
 
 TurnSpec::TurnSpec() :
-    TurnSpec(MoveDirection::None, GameState::Init, 0, 0, {})
+    d(new TurnSpecPrivate(WRONG_ID, WRONG_ID, 0, 0, GameState::Init, MoveDirection::None))
 {
 }
 
 
-TurnSpec::TurnSpec(MoveDirection moveDirection, GameState gameState,
-                   int score, int bestScore, const QList<TileSpec> &tiles) :
-    d(std::make_shared<TurnSpecPrivate>(moveDirection, gameState, score, bestScore, tiles))
+TurnSpec::TurnSpec(int gameId, int turnId, int score, int bestScore, GameState state,
+                   MoveDirection direction, const QList<TileSpec> &tiles) :
+    d(new TurnSpecPrivate(gameId, turnId, score, bestScore, state, direction, tiles))
 {
 }
 
 
-MoveDirection TurnSpec::moveDirection() const
+int TurnSpec::gameId() const
 {
-    return d->m_moveDirection;
+    return d->m_gameId;
 }
 
 
-GameState TurnSpec::gameState() const
+int TurnSpec::turnId() const
 {
-    return d->m_gameState;
+    return d->m_turnId;
 }
 
 
@@ -92,6 +92,18 @@ int TurnSpec::score() const
 int TurnSpec::bestScore() const
 {
     return d->m_bestScore;
+}
+
+
+GameState TurnSpec::gameState() const
+{
+    return d->m_gameState;
+}
+
+
+MoveDirection TurnSpec::moveDirection() const
+{
+    return d->m_moveDirection;
 }
 
 

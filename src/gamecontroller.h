@@ -36,6 +36,9 @@ class GameControllerPrivate;
 class GameSpec;
 } // namespace Internal
 
+using GameSpec = Internal::GameSpec;
+using MoveDirection = Internal::MoveDirection;
+
 class GameController final : public QObject
 {
     Q_OBJECT
@@ -52,13 +55,13 @@ private slots:
     void onGameReady();
     void onStartNewGameRequested();
     void onContinueGameRequested();
-    void onMoveTilesRequested(Internal::MoveDirection direction);
+    void onMoveTilesRequested(MoveDirection direction);
     void onTileMoveFinished();
     void onStorageReady();
     void onStorageError();
-    void onGameCreated();
+    void onGameCreated(const GameSpec &game);
     void onCreateGameError();
-    void onGameRestored(const Internal::GameSpec &gameSpec);
+    void onGameRestored(const GameSpec &game);
     void onRestoreGameError();
     void startNewGame();
     void restoreGame();

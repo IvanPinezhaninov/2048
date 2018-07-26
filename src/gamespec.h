@@ -41,17 +41,17 @@ class GameSpec final
 {
 public:
     GameSpec();
-    GameSpec(int rows, int columns, GameState gameState,
-             int score, int bestScore, const QList<TileSpec> &tiles);
+    GameSpec(int gameId, int rows, int columns, int turnId);
+    GameSpec(int gameId, int rows, int columns, int turnId, int score, int bestScore,
+             GameState gameState, const QList<TileSpec> &tiles = QList<TileSpec>());
 
+    int gameId() const;
     int rows() const;
     int columns() const;
-
-    GameState gameState() const;
-
+    int turnId() const;
     int score() const;
     int bestScore() const;
-
+    GameState gameState() const;
     QList<TileSpec> tiles() const;
 
 private:

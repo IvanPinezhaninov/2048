@@ -42,15 +42,15 @@ class TurnSpec final
 {
 public:
     TurnSpec();
-    TurnSpec(MoveDirection moveDirection, GameState gameState,
-             int score, int bestScore, const QList<TileSpec> &tiles);
+    TurnSpec(int gameId, int turnId, int score, int bestScore, GameState gameState,
+             MoveDirection moveDirection, const QList<TileSpec> &tiles = QList<TileSpec>());
 
-    MoveDirection moveDirection() const;
-    GameState gameState() const;
-
+    int gameId() const;
+    int turnId() const;
     int score() const;
     int bestScore() const;
-
+    GameState gameState() const;
+    MoveDirection moveDirection() const;
     QList<TileSpec> tiles() const;
 
 private:

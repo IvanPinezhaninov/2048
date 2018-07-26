@@ -50,7 +50,7 @@ signals:
     void storageReady();
     void storageError();
 
-    void gameCreated();
+    void gameCreated(const GameSpec &game);
     void createGameError();
 
     void turnSaved();
@@ -74,12 +74,12 @@ private:
     bool executeQuery(const QString &query, QString &error);
     bool executeFileQueries(const QString &fileName);
 
-    bool updateGame();
+    bool finishGame();
     bool createGame(int rows, int columns, int &gameId);
 
-    bool saveGameState(GameState state);
-    bool saveTiles(const TileSpecs &tiles);
-    bool restoreTiles(TileSpecs &tiles);
+    bool saveGameState(int gameId, GameState state);
+    bool saveTiles(int turnId, const TileSpecs &tiles);
+    bool restoreTiles(int turnId, TileSpecs &tiles);
 
     void removeTurns();
     void removeTiles();
@@ -91,6 +91,9 @@ private:
 
     int moveDirectionToInt(MoveDirection moveDirection) const;
     MoveDirection moveDirectionFromInt(int value) const;
+    QString moveDirectionName(MoveDirection moveDirection) const;
+
+    QString tilesToString(const QList<TileSpec> &tiles) const;
 
     void handleCreateGameError(bool rollback = true);
     void handleSaveTurnError(bool rollback = true);
@@ -102,8 +105,6 @@ private:
 
     QSqlDatabase m_db;
     QMutex m_lock;
-    int m_gameId;
-    int m_turnId;
 };
 
 } // namespace Internal
