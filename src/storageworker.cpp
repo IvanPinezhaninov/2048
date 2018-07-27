@@ -265,6 +265,13 @@ void StorageWorker::saveTurn(const TurnSpec &turn)
 }
 
 
+void StorageWorker::undoTurn()
+{
+    // TODO: realisation
+    emit undoTurnError();
+}
+
+
 void StorageWorker::restoreGame()
 {
     QMutexLocker locker(&m_lock);

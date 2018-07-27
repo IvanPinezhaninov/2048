@@ -75,6 +75,9 @@ public:
 
     QQuickItem *tilesParent() const;
 
+    void setUndoButtonEnabled(bool enabled, bool animation = true);
+    bool isUndoButtonEnabled() const;
+
 signals:
     void gameReady();
     void scoreChanged(int score);
@@ -86,6 +89,7 @@ signals:
     void cellsChanged();
     void startNewGameRequested();
     void continueGameRequested();
+    void undoRequested();
     void moveTilesRequested(MoveDirection moveDirection);
 
 public slots:

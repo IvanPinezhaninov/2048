@@ -68,10 +68,14 @@ signals:
     void gameRestored(const GameSpec &game);
     void restoreGameError();
 
+    void turnUndid(const TurnSpec &turn);
+    void undoTurnError();
+
 public slots:
     void createGame(int rows, int columns);
     void restoreGame();
     void saveTurn(const TurnSpec &turn);
+    void undoTurn();
 
 private slots:
     void onStorageReady();

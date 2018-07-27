@@ -59,12 +59,16 @@ signals:
     void gameRestored(const GameSpec &game);
     void restoreGameError();
 
+    void turnUndid(const TurnSpec &turn);
+    void undoTurnError();
+
 public slots:
     void openDatabase();
     void closeDatabase();
     void createGame(int rows, int columns);
     void restoreGame();
     void saveTurn(const TurnSpec &turn);
+    void undoTurn();
 
 private:
     Q_DISABLE_COPY(StorageWorker)

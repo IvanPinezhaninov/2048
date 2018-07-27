@@ -34,10 +34,12 @@ namespace Game {
 namespace Internal {
 class GameControllerPrivate;
 class GameSpec;
+class TurnSpec;
 } // namespace Internal
 
 using GameSpec = Internal::GameSpec;
 using MoveDirection = Internal::MoveDirection;
+using TurnSpec = Internal::TurnSpec;
 
 class GameController final : public QObject
 {
@@ -55,6 +57,7 @@ private slots:
     void onGameReady();
     void onStartNewGameRequested();
     void onContinueGameRequested();
+    void onUndoRequested();
     void onMoveTilesRequested(MoveDirection direction);
     void onTileMoveFinished();
     void onStorageReady();
@@ -63,6 +66,10 @@ private slots:
     void onCreateGameError();
     void onGameRestored(const GameSpec &game);
     void onRestoreGameError();
+    void onTurnSaved();
+    void onSaveTurnError();
+    void onTurnUndid(const TurnSpec &turnSpec);
+    void onUndoTurnError();
     void startNewGame();
     void restoreGame();
 

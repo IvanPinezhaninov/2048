@@ -29,8 +29,12 @@ Item {
     property alias score: scoreLabel.value
     property alias bestScore: bestScoreLabel.value
 
+    property bool undoButtonEnabled: false
+    property bool undoButtonAnimation: false
+
     signal continueGameRequested
     signal startNewGameRequested
+    signal undoRequested
 
     objectName: 'Game'
     state: 'init'
@@ -108,21 +112,34 @@ Item {
         font.pixelSize: 18
         color: '#776e65'
         text: qsTr('Join the numbers and get to the <b>2048 tile!</b>')
-        Behavior on opacity { NumberAnimation { duration: 200 } }
+
+        onOpacityChanged: {
+            if (0.0 === opacity) {
+                undoButton.opacity = 1.0
+            }
+        }
+
+        Behavior on opacity { enabled: undoButtonAnimation; NumberAnimation { duration: 200 } }
     }
 
     Button {
         id: undoButton
 
-        objectName: 'UndoButton'
         anchors.left: gameboard.left
         anchors.verticalCenter: newGameButton.verticalCenter
         visible: 0.0 !== opacity
         opacity: 0.0
         width: 80
         text: qsTr('Undo')
-        onClicked: console.log('Coming soon!')
-        Behavior on opacity { NumberAnimation { duration: 200 } }
+        onClicked: undoRequested()
+
+        onOpacityChanged: {
+            if (0.0 === opacity) {
+                mottoText.opacity = 1.0
+            }
+        }
+
+        Behavior on opacity { enabled: undoButtonAnimation; NumberAnimation { duration: 200 } }
     }
 
     Button {
@@ -188,6 +205,14 @@ Item {
                 loader.item.startNewGameRequested.connect(startNewGameRequested)
                 break
             }
+        }
+    }
+
+    onUndoButtonEnabledChanged: {
+        if (undoButtonEnabled) {
+            mottoText.opacity = 0.0
+        } else {
+            undoButton.opacity = 0.0
         }
     }
 }

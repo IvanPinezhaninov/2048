@@ -37,6 +37,8 @@ static const char *const GAMEBOARD_OBJECT_NAME = "Gameboard";
 static const char *const GAME_STATE_PROPERTY_NAME = "state";
 static const char *const SCORE_PROPERTY_NAME = "score";
 static const char *const BEST_SCORE_PROPERTY_NAME = "bestScore";
+static const char *const UNDO_BUTTON_ENABLED_PROPERTY_NAME = "undoButtonEnabled";
+static const char *const UNDO_BUTTON_ANIMATION_PROPERTY_NAME = "undoButtonAnimation";
 
 static const char *const INIT_GAME_STATE_NAME = "init";
 static const char *const PLAY_GAME_STATE_NAME = "play";
@@ -222,6 +224,19 @@ QQuickItem *Game::tilesParent() const
 }
 
 
+void Game::setUndoButtonEnabled(bool enabled, bool animation)
+{
+    d->m_gameItem->setProperty(UNDO_BUTTON_ANIMATION_PROPERTY_NAME, animation);
+    d->m_gameItem->setProperty(UNDO_BUTTON_ENABLED_PROPERTY_NAME, enabled);
+}
+
+
+bool Game::isUndoButtonEnabled() const
+{
+    return d->m_gameItem->property(UNDO_BUTTON_ENABLED_PROPERTY_NAME).toBool();
+}
+
+
 void Game::showFullScreen()
 {
     Q_ASSERT(nullptr != d->m_windowItem);
@@ -381,6 +396,9 @@ bool Game::eventFilter(QObject *object, QEvent *event)
         case Qt::Key_Return:
             d->processEnterKeyPressed();
             break;
+        case Qt::Key_Backspace:
+            emit undoRequested();
+            break;
         default:
             break;
         }
@@ -400,6 +418,7 @@ void Game::onRootObjectCreated(QObject *object, const QUrl &url)
     d->m_gameItem = q_check_ptr(object->findChild<QQuickItem*>(QLatin1Literal(GAME_OBJECT_NAME)));
     connect(d->m_gameItem, SIGNAL(continueGameRequested()), this, SIGNAL(continueGameRequested()));
     connect(d->m_gameItem, SIGNAL(startNewGameRequested()), this, SIGNAL(startNewGameRequested()));
+    connect(d->m_gameItem, SIGNAL(undoRequested()), this, SIGNAL(undoRequested()));
 
     QQuickItem *gameboardItem = q_check_ptr(d->m_gameItem->findChild<QQuickItem*>(QLatin1Literal(GAMEBOARD_OBJECT_NAME)));
     d->m_gameboard = std::make_unique<Gameboard>(gameboardItem);

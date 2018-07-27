@@ -85,6 +85,7 @@ public:
     void createNewGame(int rows, int columns);
     void saveTurn();
     QList<TileSpec> tileSpecs() const;
+    bool isFirstTurn() const;
 
     void readSettings();
     void saveSettings();
@@ -107,6 +108,8 @@ public:
     int m_tileId;
     int m_movingTilesCount;
     MoveDirection m_moveDirection;
+    bool m_undoEnabled;
+    bool m_undoStarted;
     bool m_moveBlocked;
 };
 
@@ -130,6 +133,8 @@ GameControllerPrivate::GameControllerPrivate(GameController *parent) :
   m_tileId(0),
   m_movingTilesCount(0),
   m_moveDirection(MoveDirection::None),
+  m_undoEnabled(true),
+  m_undoStarted(false),
   m_moveBlocked(true)
 {
 }
@@ -329,6 +334,12 @@ QList<TileSpec> GameControllerPrivate::tileSpecs() const
 }
 
 
+bool GameControllerPrivate::isFirstTurn() const
+{
+    return m_turnId < 2;
+}
+
+
 void GameControllerPrivate::readSettings()
 {
     if (!m_settings->contains(QLatin1Literal(GAME_WINDOW_X_SETTING_KEY_NAME))) {
@@ -370,12 +381,17 @@ GameController::GameController(QObject *parent) :
     connect(d->m_game.get(), &Game::moveTilesRequested, this, &GameController::onMoveTilesRequested);
     connect(d->m_game.get(), &Game::startNewGameRequested, this, &GameController::onStartNewGameRequested);
     connect(d->m_game.get(), &Game::continueGameRequested, this, &GameController::onContinueGameRequested);
+    connect(d->m_game.get(), &Game::undoRequested, this, &GameController::onUndoRequested);
     connect(d->m_storage.get(), &Storage::storageReady, this, &GameController::onStorageReady);
     connect(d->m_storage.get(), &Storage::storageError, this, &GameController::onStorageError);
     connect(d->m_storage.get(), &Storage::gameCreated, this, &GameController::onGameCreated);
     connect(d->m_storage.get(), &Storage::createGameError, this, &GameController::onCreateGameError);
     connect(d->m_storage.get(), &Storage::gameRestored, this, &GameController::onGameRestored);
     connect(d->m_storage.get(), &Storage::restoreGameError, this, &GameController::onRestoreGameError);
+    connect(d->m_storage.get(), &Storage::turnSaved, this, &GameController::onTurnSaved);
+    connect(d->m_storage.get(), &Storage::saveTurnError, this, &GameController::onSaveTurnError);
+    connect(d->m_storage.get(), &Storage::turnUndid, this, &GameController::onTurnUndid);
+    connect(d->m_storage.get(), &Storage::undoTurnError, this, &GameController::onUndoTurnError);
 }
 
 
@@ -433,6 +449,15 @@ void GameController::onContinueGameRequested()
     }
 
     d->m_moveBlocked = false;
+}
+
+
+void GameController::onUndoRequested()
+{
+    if (!d->m_moveBlocked && d->m_undoEnabled && !d->isFirstTurn()) {
+        d->m_moveBlocked = true;
+        d->m_storage->undoTurn();
+    }
 }
 
 
@@ -699,6 +724,7 @@ void GameController::onGameRestored(const GameSpec &game)
     d->m_game->setScore(game.score());
     d->m_game->setBestScore(game.bestScore());
     d->m_game->setGameState(game.gameState());
+    d->m_game->setUndoButtonEnabled(!d->isFirstTurn(), false);
     d->m_game->show();
 
     const int timeout = d->useRestoreAnimation() ? SHOW_START_TILES_DELAY : 0;
@@ -715,11 +741,47 @@ void GameController::onRestoreGameError()
 }
 
 
+void GameController::onTurnSaved()
+{
+    if (d->m_undoEnabled && !d->isFirstTurn() && !d->m_game->isUndoButtonEnabled()) {
+        d->m_game->setUndoButtonEnabled(true);
+    }
+}
+
+
+void GameController::onSaveTurnError()
+{
+    if (d->m_undoEnabled) {
+        d->m_undoEnabled = false;
+        d->m_game->setUndoButtonEnabled(false);
+    }
+}
+
+
+void GameController::onTurnUndid(const TurnSpec &turnSpec)
+{
+    d->m_undoStarted = true;
+    d->m_turnId = turnSpec.turnId();
+
+    // TODO: realisation
+}
+
+
+void GameController::onUndoTurnError()
+{
+    d->m_undoEnabled = false;
+    d->m_game->setUndoButtonEnabled(false);
+    d->m_moveBlocked = false;
+}
+
+
 void GameController::startNewGame()
 {
     d->m_game->setScore(0);
     d->m_game->setGameState(GameState::Play);
+    d->m_game->setUndoButtonEnabled(false);
     d->m_moveDirection = MoveDirection::None;
+    d->m_undoEnabled = true;
     d->clearTiles();
     d->createStartTiles();
 
