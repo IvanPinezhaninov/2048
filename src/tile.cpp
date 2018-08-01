@@ -23,29 +23,32 @@
 #include "cell.h"
 #include "tile.h"
 
+#include <QRectF>
 #include <QQuickItem>
 
+static const char *const ID_PROPERTY_NAME = "id";
 static const char *const X_PROPERTY_NAME = "x";
 static const char *const Y_PROPERTY_NAME = "y";
 static const char *const WIDTH_PROPERTY_NAME = "width";
 static const char *const HEIGHT_PROPERTY_NAME = "height";
 static const char *const VALUE_PROPERTY_NAME = "value";
+static const char *const ANIMATION_PROPERTY_NAME = "animation";
+static const char *const HIDDEN_PROPERTY_NAME = "hidden";
 
 
 namespace Game {
 namespace Internal {
 
-Tile::Tile(int id, QQuickItem *tileItem, QQuickItem *parent, bool animation) :
+Tile::Tile(int id, int value, QQuickItem *tileItem, QQuickItem *parent) :
     QObject(parent),
     m_tileItem(tileItem),
     m_id(id),
-    m_value(0)
+    m_value(value)
 {
-    if (!animation) {
-        m_tileItem->setProperty(VALUE_PROPERTY_NAME, -1);
-    }
-
     m_tileItem->setParentItem(parent);
+#ifdef QT_DEBUG
+    m_tileItem->setProperty(ID_PROPERTY_NAME, id);
+#endif
     connect(m_tileItem.get(), SIGNAL(moveFinished()), this, SLOT(onMoveFinished()));
 }
 
@@ -64,6 +67,9 @@ int Tile::id() const
 void Tile::setId(int id)
 {
     m_id = id;
+#ifdef QT_DEBUG
+    m_tileItem->setProperty(ID_PROPERTY_NAME, id);
+#endif
 }
 
 
@@ -75,18 +81,24 @@ int Tile::value() const
 
 void Tile::setValue(int value)
 {
-    if (0 == m_value) {
-        m_tileItem->setProperty(VALUE_PROPERTY_NAME, value);
+    if (m_value != value) {
+        m_value = value;
     }
-
-    m_value = value;
 }
 
 
-void Tile::resetValue()
+void Tile::hide(bool animation)
 {
-    m_value = 0;
-    m_tileItem->setProperty(VALUE_PROPERTY_NAME, 0);
+    m_tileItem->setProperty(ANIMATION_PROPERTY_NAME, animation);
+    m_tileItem->setProperty(HIDDEN_PROPERTY_NAME, true);
+}
+
+
+void Tile::show(bool animation)
+{
+    m_tileItem->setProperty(VALUE_PROPERTY_NAME, m_value);
+    m_tileItem->setProperty(ANIMATION_PROPERTY_NAME, animation);
+    m_tileItem->setProperty(HIDDEN_PROPERTY_NAME, false);
 }
 
 

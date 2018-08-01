@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS games
 
 CREATE TABLE IF NOT EXISTS turns
                           (turn_id INTEGER PRIMARY KEY NOT NULL,
+                           parent_turn_id INTEGER NOT NULL,
                            turn_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                            move_direction INTEGER NOT NULL,
                            score INTEGER NOT NULL,
@@ -17,7 +18,7 @@ CREATE TABLE IF NOT EXISTS turns
 
 CREATE TABLE IF NOT EXISTS tiles
                           (turn_id INTEGER NOT NULL,
-                           tile_id INTEGER INTEGER NOT NULL,
+                           tile_id INTEGER NOT NULL,
                            tile_value INTEGER NOT NULL,
                            cell_index INTEGER NOT NULL,
                            FOREIGN KEY (turn_id) REFERENCES turns(turn_id));

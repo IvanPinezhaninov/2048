@@ -28,11 +28,13 @@
 #include <QSqlQuery>
 #include <QStandardPaths>
 #include <QStringList>
+#include <QVariant>
+#include <QVariantList>
+#include <QVariantMap>
 
-#include "gamespec.h"
 #include "logger.h"
 #include "storageworker.h"
-#include "turnspec.h"
+#include "storageconstants.h"
 
 
 static const char *const DATABASE_TYPE = "QSQLITE";
@@ -43,22 +45,25 @@ static const char *const DATABASE_FILE_LOCATION = "%1/../Resources/%2";
 static const char *const DATABASE_FILE_LOCATION = "%1/%2";
 #endif
 
-static const char *const GAME_ID_COLUMN_NAME = "game_id";
-static const char *const TURN_ID_COLUMN_NAME = "turn_id";
-static const char *const ROWS_COLUMN_NAME = "rows";
-static const char *const COLUMNS_COLUMN_NAME = "columns";
-static const char *const GAME_STATE_COLUMN_NAME = "game_state";
-static const char *const SCORE_COLUMN_NAME = "score";
 static const char *const BEST_SCORE_COLUMN_NAME = "best_score";
+static const char *const COLUMNS_COLUMN_NAME = "columns";
+static const char *const GAME_ID_COLUMN_NAME = "game_id";
+static const char *const GAME_STATE_COLUMN_NAME = "game_state";
+static const char *const PARENT_TURN_ID_COLUMN_NAME = "parent_turn_id";
+static const char *const ROWS_COLUMN_NAME = "rows";
+static const char *const MOVE_DIRECTION_COLUMN_NAME = "move_direction";
+static const char *const SCORE_COLUMN_NAME = "score";
+static const char *const TILE_CELL_COLUMN_NAME = "cell_index";
 static const char *const TILE_ID_COLUMN_NAME = "tile_id";
-static const char *const TILE_CELL_INDEX_COLUMN_NAME = "cell_index";
 static const char *const TILE_VALUE_COLUMN_NAME = "tile_value";
+static const char *const TILE_STATE_COLUMN_NAME = "tile_state";
+static const char *const TURN_ID_COLUMN_NAME = "turn_id";
 
-static const char *const GAME_STATE_INIT_NAME = "Init";
-static const char *const GAME_STATE_PLAY_NAME = "Play";
-static const char *const GAME_STATE_WIN_NAME = "Win";
-static const char *const GAME_STATE_DEFEAT_NAME = "Defeat";
-static const char *const GAME_STATE_CONTINUE_NAME = "Continue";
+static const char *const GAME_STATE_INIT_NAME = "I";
+static const char *const GAME_STATE_PLAY_NAME = "P";
+static const char *const GAME_STATE_WIN_NAME = "W";
+static const char *const GAME_STATE_DEFEAT_NAME = "D";
+static const char *const GAME_STATE_CONTINUE_NAME = "C";
 
 static const int GAME_STATE_INIT_VALUE = 0;
 static const int GAME_STATE_PLAY_VALUE = 1;
@@ -66,11 +71,11 @@ static const int GAME_STATE_WIN_VALUE = 2;
 static const int GAME_STATE_DEFEAT_VALUE = 3;
 static const int GAME_STATE_CONTINUE_VALUE = 4;
 
-static const char *const MOVE_DIRECTION_NONE_NAME = "None";
-static const char *const MOVE_DIRECTION_LEFT_NAME = "Left";
-static const char *const MOVE_DIRECTION_RIGHT_NAME = "Right";
-static const char *const MOVE_DIRECTION_UP_NAME = "Up";
-static const char *const MOVE_DIRECTION_DOWN_NAME = "Down";
+static const char *const MOVE_DIRECTION_NONE_NAME = "N";
+static const char *const MOVE_DIRECTION_LEFT_NAME = "L";
+static const char *const MOVE_DIRECTION_RIGHT_NAME = "R";
+static const char *const MOVE_DIRECTION_UP_NAME = "U";
+static const char *const MOVE_DIRECTION_DOWN_NAME = "D";
 
 static const int MOVE_DIRECTION_NONE_VALUE = 0;
 static const int MOVE_DIRECTION_LEFT_VALUE = 1;
@@ -79,7 +84,6 @@ static const int MOVE_DIRECTION_UP_VALUE = 3;
 static const int MOVE_DIRECTION_DOWN_VALUE = 4;
 
 static const int WRONG_ID = -1;
-static const int FIRST_TURN_ID = 1;
 static const int WRONG_DATABASE_VERSION = -1;
 
 
@@ -182,7 +186,7 @@ void StorageWorker::createGame(int rows, int columns)
         return;
     }
 
-    int gameId = WRONG_ID;
+    QVariant gameId;
     if (!createGame(rows, columns, gameId)) {
         handleCreateGameError();
         return;
@@ -196,31 +200,42 @@ void StorageWorker::createGame(int rows, int columns)
         return;
     }
 
-    emit gameCreated(GameSpec(gameId, rows, columns, FIRST_TURN_ID));
+    qDebug().nospace() << "C | " << gameId.toInt() << " | " << rows << "x" << columns;
+
+    QVariantMap game;
+    game.insert(QLatin1Literal(GAME_ID_KEY), gameId);
+    game.insert(QLatin1Literal(ROWS_KEY), rows);
+    game.insert(QLatin1Literal(COLUMNS_KEY), columns);
+
+    emit gameCreated(game);
 }
 
 
-void StorageWorker::saveTurn(const TurnSpec &turn)
+void StorageWorker::saveTurn(const QVariantMap &turn)
 {
-    if (WRONG_ID == turn.gameId()) {
-        qWarning() << "Failed to save turn in the database. Missing game id";
-        handleSaveTurnError(false);
-        return;
-    }
-
-    if (WRONG_ID == turn.turnId()) {
-        qWarning() << "Failed to save turn in the database. Missing turn id";
-        handleSaveTurnError(false);
-        return;
-    }
-
     QMutexLocker locker(&m_lock);
+
+    Q_ASSERT_X(turn.contains(QLatin1Literal(GAME_ID_KEY)), "saveTurn", "Missing game id");
+    Q_ASSERT_X(turn.contains(QLatin1Literal(TURN_ID_KEY)), "saveTurn", "Missing turn id");
+    Q_ASSERT_X(turn.contains(QLatin1Literal(PARENT_TURN_ID_KEY)), "saveTurn", "Missing parent turn id");
+    Q_ASSERT_X(turn.contains(QLatin1Literal(MOVE_DIRECTION_KEY)), "saveTurn", "Missing move direction");
+    Q_ASSERT_X(turn.contains(QLatin1Literal(GAME_STATE_KEY)), "saveTurn", "Missing game state");
+    Q_ASSERT_X(turn.contains(QLatin1Literal(SCORE_KEY)), "saveTurn", "Missing score");
+    Q_ASSERT_X(turn.contains(QLatin1Literal(BEST_SCORE_KEY)), "saveTurn", "Missing best score");
+    Q_ASSERT_X(turn.contains(QLatin1Literal(TILES_KEY)), "saveTurn", "Missing tiles");
+
+    const QVariant &turnId = turn.value(QLatin1Literal(TURN_ID_KEY));
+    const QVariant &parentTurnId = turn.value(QLatin1Literal(PARENT_TURN_ID_KEY));
+    const QVariant &moveDirection = turn.value(QLatin1Literal(MOVE_DIRECTION_KEY));
+    const QVariant &score = turn.value(QLatin1Literal(SCORE_KEY));
+    const QVariant &bestScore = turn.value(QLatin1Literal(BEST_SCORE_KEY));
+
     const bool transactional = startTransaction();
 
     QSqlQuery sqlQuery(m_db);
 
-    const QString &query = QLatin1Literal("INSERT INTO turns (turn_id, move_direction, score, best_score) "
-                                          "VALUES (?, ?, ?, ?)");
+    const QString &query = QLatin1Literal("INSERT INTO turns (turn_id, parent_turn_id, move_direction, score, best_score) "
+                                          "VALUES (?, ?, ?, ?, ?)");
 
     if (!sqlQuery.prepare(query)) {
         qWarning() << "Failed to prepare the save turn query:" << qPrintable(sqlQuery.lastError().text());
@@ -228,10 +243,11 @@ void StorageWorker::saveTurn(const TurnSpec &turn)
         return;
     }
 
-    sqlQuery.addBindValue(turn.turnId());
-    sqlQuery.addBindValue(moveDirectionToInt(turn.moveDirection()));
-    sqlQuery.addBindValue(turn.score());
-    sqlQuery.addBindValue(turn.bestScore());
+    sqlQuery.addBindValue(turnId);
+    sqlQuery.addBindValue(parentTurnId);
+    sqlQuery.addBindValue(moveDirectionToInt(moveDirection));
+    sqlQuery.addBindValue(score);
+    sqlQuery.addBindValue(bestScore);
 
     if (!sqlQuery.exec()) {
         qWarning() << "Failed to execute the save turn query:" << qPrintable(sqlQuery.lastError().text());
@@ -239,13 +255,19 @@ void StorageWorker::saveTurn(const TurnSpec &turn)
         return;
     }
 
-    const bool needToSaveGameState = (GameState::Play != turn.gameState());
-    if (needToSaveGameState && !saveGameState(turn.gameId(), turn.gameState())) {
+    Q_ASSERT(turn.value(QLatin1Literal(GAME_STATE_KEY)).canConvert<GameState>());
+
+    const QVariant &gameId = turn.value(QLatin1Literal(GAME_ID_KEY));
+    const GameState gameState = turn.value(QLatin1Literal(GAME_STATE_KEY)).value<GameState>();
+
+    const bool needToSaveGameState = (GameState::Play != gameState);
+    if (needToSaveGameState && !saveGameState(gameId, gameState)) {
         handleSaveTurnError();
         return;
     }
 
-    if (!saveTiles(turn.turnId(), turn.tiles())) {
+    const QVariantList &tiles = turn.value(QLatin1Literal(TILES_KEY)).toList();
+    if (!saveTiles(turnId, tiles)) {
         handleSaveTurnError();
         return;
     }
@@ -255,19 +277,20 @@ void StorageWorker::saveTurn(const TurnSpec &turn)
         return;
     }
 
-    qDebug().nospace() << "Game saved to the database. Game id: " << turn.gameId() << ". Turn id: " << turn.turnId();
-    qDebug().nospace() << "Game state: " << qPrintable(gameStateName(turn.gameState())) << ". "
-                       << "Move direction: " << qPrintable(moveDirectionName(turn.moveDirection())) << ". "
-                       << "Score: " << turn.score() << ". Best score: " << turn.bestScore();
-    qDebug() << "Saved tiles:" << qPrintable(tilesToString(turn.tiles()));
+    qDebug().nospace() << "S | " << turnId.toInt() << " | " << parentTurnId.toInt() << " | "
+                       << qPrintable(gameStateName(gameState)) << " | "
+                       << qPrintable(moveDirectionName(moveDirection)) << " | "
+                       << score.toInt() << " | " << bestScore.toInt() << " | "
+                       << qPrintable(tilesToString(tiles));
 
     emit turnSaved();
 }
 
 
-void StorageWorker::undoTurn()
+void StorageWorker::undoTurn(int turnId)
 {
-    // TODO: realisation
+    Q_UNUSED(turnId)
+    qDebug() << "Coming soon!";
     emit undoTurnError();
 }
 
@@ -280,7 +303,7 @@ void StorageWorker::restoreGame()
     QSqlQuery sqlQuery(m_db);
 
     const QString &query = QLatin1Literal("SELECT games.game_id, games.rows, games.columns, games.game_state, "
-                                                 "turns.turn_id, turns.score, turns.best_score "
+                                                 "turns.turn_id, turns.parent_turn_id, turns.score, turns.best_score "
                                           "FROM games, turns "
                                           "ORDER BY games.game_id DESC, turns.turn_id DESC LIMIT 1");
 
@@ -302,63 +325,34 @@ void StorageWorker::restoreGame()
         return;
     }
 
+    Q_ASSERT_X(sqlQuery.record().contains(QLatin1Literal(GAME_ID_COLUMN_NAME)), "Restore game", "Game id column not found");
+    Q_ASSERT_X(sqlQuery.record().contains(QLatin1Literal(ROWS_COLUMN_NAME)), "Restore game", "Rows column not found");
+    Q_ASSERT_X(sqlQuery.record().contains(QLatin1Literal(COLUMNS_COLUMN_NAME)), "Restore game", "Columns column not found");
+    Q_ASSERT_X(sqlQuery.record().contains(QLatin1Literal(TURN_ID_COLUMN_NAME)), "Restore game", "Turn id column not found");
+    Q_ASSERT_X(sqlQuery.record().contains(QLatin1Literal(PARENT_TURN_ID_COLUMN_NAME)), "Restore game", "Parent turn id column not found");
+    Q_ASSERT_X(sqlQuery.record().contains(QLatin1Literal(GAME_STATE_COLUMN_NAME)), "Restore game", "Game state column not found");
+    Q_ASSERT_X(sqlQuery.record().contains(QLatin1Literal(SCORE_COLUMN_NAME)), "Restore game", "Score column not found");
+    Q_ASSERT_X(sqlQuery.record().contains(QLatin1Literal(BEST_SCORE_COLUMN_NAME)), "Restore game", "Best score column not found");
+
+    const QVariant &gameId = sqlQuery.value(QLatin1Literal(GAME_ID_COLUMN_NAME));
+    const QVariant &rows = sqlQuery.value(QLatin1Literal(ROWS_COLUMN_NAME));
+    const QVariant &columns = sqlQuery.value(QLatin1Literal(COLUMNS_COLUMN_NAME));
+    const QVariant &turnId = sqlQuery.value(QLatin1Literal(TURN_ID_COLUMN_NAME));
+    const QVariant &parentTurnId = sqlQuery.value(QLatin1Literal(PARENT_TURN_ID_COLUMN_NAME));
+    const QVariant &gameState = sqlQuery.value(QLatin1Literal(GAME_STATE_COLUMN_NAME));
+    const QVariant &score = sqlQuery.value(QLatin1Literal(SCORE_COLUMN_NAME));
+    const QVariant &bestScore = sqlQuery.value(QLatin1Literal(BEST_SCORE_COLUMN_NAME));
+
     bool ok = false;
-
-    const int gameId = sqlQuery.value(QLatin1Literal(GAME_ID_COLUMN_NAME)).toInt(&ok);
+    const QVariant &maxTurnId = getMaxTurnId(ok);
     if (!ok) {
-        qWarning() << "Failed to get id of the restored game";
+        qWarning() << "Failed to get the max turn id of the restored game";
         handleRestoreGameError();
         return;
     }
 
-    const int rows = sqlQuery.value(QLatin1Literal(ROWS_COLUMN_NAME)).toInt(&ok);
+    const QVariantList &tiles = restoreTiles(turnId, ok);
     if (!ok) {
-        qWarning() << "Failed to get the rows count of the restored game";
-        handleRestoreGameError();
-        return;
-    }
-
-    const int columns = sqlQuery.value(QLatin1Literal(COLUMNS_COLUMN_NAME)).toInt(&ok);
-    if (!ok) {
-        qWarning() << "Failed to get the columns count of the restored game";
-        handleRestoreGameError();
-        return;
-    }
-
-    const int turnId = sqlQuery.value(QLatin1Literal(TURN_ID_COLUMN_NAME)).toInt(&ok);
-    if (!ok) {
-        qWarning() << "Failed to get the turn id of the restored game";
-        handleRestoreGameError();
-        return;
-    }
-
-    const int gameStateValue = sqlQuery.value(QLatin1Literal(GAME_STATE_COLUMN_NAME)).toInt(&ok);
-    GameState gameState = GameState::Init;
-    if (ok) {
-        gameState = gameStateFromInt(gameStateValue);
-    } else {
-        qWarning() << "Failed to get the game state of the restored game";
-        handleRestoreGameError();
-        return;
-    }
-
-    const int score = sqlQuery.value(QLatin1Literal(SCORE_COLUMN_NAME)).toInt(&ok);
-    if (!ok) {
-        qWarning() << "Failed to get the score of the restored game";
-        handleRestoreGameError();
-        return;
-    }
-
-    const int bestScore = sqlQuery.value(QLatin1Literal(BEST_SCORE_COLUMN_NAME)).toInt(&ok);
-    if (!ok) {
-        qWarning() << "Failed to get the best score of the restored game";
-        handleRestoreGameError();
-        return;
-    }
-
-
-    TileSpecs tiles;
-    if (!restoreTiles(turnId, tiles)) {
         handleRestoreGameError();
         return;
     }
@@ -368,13 +362,26 @@ void StorageWorker::restoreGame()
         return;
     }
 
-    qDebug().nospace() << "Game restored from the database. Game id: " << gameId << ". Turn id: " << turnId;
-    qDebug().nospace() << "Gameboard size: " << rows << "x" << columns << ". "
-                       << "Game state: " << qPrintable(gameStateName(gameState)) << ". "
-                       << "Score: " << score << ". Best score: " << bestScore;
-    qDebug() << "Restored tiles:" << qPrintable(tilesToString(tiles));
+    qDebug().nospace() << "R | " << gameId.toInt()
+                       << " | " << rows.toInt() << "x" << columns.toInt() << " | "
+                       << turnId.toInt() << " | " << parentTurnId.toInt() << " | " << maxTurnId.toInt() << " | "
+                       << qPrintable(gameStateName(gameState)) << " | "
+                       << score.toInt() << " | " << bestScore.toInt() << " | "
+                       << qPrintable(tilesToString(tiles));
 
-    emit gameRestored(GameSpec(gameId, rows, columns, turnId, score, bestScore, gameState, tiles));
+    QVariantMap game;
+    game.insert(QLatin1Literal(GAME_ID_KEY), gameId);
+    game.insert(QLatin1Literal(ROWS_KEY), rows);
+    game.insert(QLatin1Literal(COLUMNS_KEY), columns);
+    game.insert(QLatin1Literal(TURN_ID_KEY), turnId);
+    game.insert(QLatin1Literal(PARENT_TURN_ID_KEY), parentTurnId);
+    game.insert(QLatin1Literal(MAX_TURN_ID_KEY), maxTurnId);
+    game.insert(QLatin1Literal(GAME_STATE_KEY), gameState);
+    game.insert(QLatin1Literal(SCORE_KEY), score);
+    game.insert(QLatin1Literal(BEST_SCORE_KEY), bestScore);
+    game.insert(QLatin1Literal(TILES_KEY), tiles);
+
+    emit gameRestored(game);
 }
 
 
@@ -485,7 +492,7 @@ bool StorageWorker::finishGame()
 }
 
 
-bool StorageWorker::createGame(int rows, int columns, int &gameId)
+bool StorageWorker::createGame(int rows, int columns, QVariant &gameId)
 {
     QSqlQuery sqlQuery(m_db);
 
@@ -504,25 +511,13 @@ bool StorageWorker::createGame(int rows, int columns, int &gameId)
         return false;
     }
 
-    bool ok = false;
-    gameId = sqlQuery.lastInsertId().toInt(&ok);
-
-    if (!ok) {
-        qWarning() << "Failed to get id of the created game";
-        gameId = WRONG_ID;
-        return false;
-    }
-
-    qDebug().nospace() << "New game saved in the database. Game id: " << gameId << ". "
-                       << "Gameboard size: " << rows << "x" << columns;
-    return true;
+    gameId = sqlQuery.lastInsertId();
+    return gameId.isValid();
 }
 
 
-bool StorageWorker::saveGameState(int gameId, GameState state)
+bool StorageWorker::saveGameState(const QVariant &gameId, GameState state)
 {
-    Q_ASSERT(WRONG_ID != gameId);
-
     QSqlQuery sqlQuery(m_db);
 
     const QString &query = QLatin1Literal("UPDATE games SET game_state = ? WHERE game_id = ?");
@@ -544,10 +539,9 @@ bool StorageWorker::saveGameState(int gameId, GameState state)
 }
 
 
-bool StorageWorker::saveTiles(int turnId, const TileSpecs &tiles)
+bool StorageWorker::saveTiles(const QVariant &turnId, const QVariantList &tiles)
 {
-    Q_ASSERT(WRONG_ID != turnId);
-    Q_ASSERT(!tiles.isEmpty());
+    Q_ASSERT_X(!tiles.isEmpty(), "Save tiles", "There is no tiles for save");
 
     QSqlQuery sqlQuery(m_db);
 
@@ -559,11 +553,12 @@ bool StorageWorker::saveTiles(int turnId, const TileSpecs &tiles)
         return false;
     }
 
-    for (const auto &tile : tiles) {
+    for (const QVariant &var : tiles) {
+        const QVariantMap &tile = var.toMap();
         sqlQuery.addBindValue(turnId);
-        sqlQuery.addBindValue(tile.id());
-        sqlQuery.addBindValue(tile.value());
-        sqlQuery.addBindValue(tile.cell());
+        sqlQuery.addBindValue(tile.value(QLatin1Literal(TILE_ID_KEY)));
+        sqlQuery.addBindValue(tile.value(QLatin1Literal(TILE_VALUE_KEY)));
+        sqlQuery.addBindValue(tile.value(QLatin1Literal(TILE_CELL_KEY)));
 
         if (!sqlQuery.exec()) {
             qWarning() << "Failed to execute the save tiles query:" << qPrintable(sqlQuery.lastError().text());
@@ -575,11 +570,8 @@ bool StorageWorker::saveTiles(int turnId, const TileSpecs &tiles)
 }
 
 
-bool StorageWorker::restoreTiles(int turnId, TileSpecs &tiles)
+QVariantList StorageWorker::restoreTiles(const QVariant &turnId, bool &ok)
 {
-    Q_ASSERT(tiles.isEmpty());
-    Q_ASSERT(WRONG_ID != turnId);
-
     QSqlQuery sqlQuery(m_db);
 
     const QString &query = QLatin1Literal("SELECT tile_id, cell_index, tile_value "
@@ -587,46 +579,74 @@ bool StorageWorker::restoreTiles(int turnId, TileSpecs &tiles)
 
     if (!sqlQuery.prepare(query)) {
         qWarning() << "Failed to prepare the restore tiles query:" << qPrintable(sqlQuery.lastError().text());
-        return false;
+        ok = false;
+        return QVariantList();
     }
 
     sqlQuery.addBindValue(turnId);
 
     if (!sqlQuery.exec()) {
         qWarning() << "Failed to execute the restore tiles query:" << qPrintable(sqlQuery.lastError().text());
-        return false;
+        ok = false;
+        return QVariantList();
     }
 
     if (!sqlQuery.first()) {
         qWarning() << "Failed to restore tiles. Tiles not found";
-        return false;
+        ok = false;
+        return QVariantList();
     }
 
-    bool ok = false;
+    Q_ASSERT_X(sqlQuery.record().contains(QLatin1Literal(TILE_ID_COLUMN_NAME)), "Restore tiles", "Tile id column not found");
+    Q_ASSERT_X(sqlQuery.record().contains(QLatin1Literal(TILE_CELL_COLUMN_NAME)), "Restore tiles", "Tile cell column not found");
+    Q_ASSERT_X(sqlQuery.record().contains(QLatin1Literal(TILE_VALUE_COLUMN_NAME)), "Restore tiles", "Tile value column not found");
+
+    QVariantList tiles;
 
     do {
-        const int id = sqlQuery.value(QLatin1Literal(TILE_ID_COLUMN_NAME)).toInt(&ok);
-        if (!ok) {
-            qWarning() << "Failed to get the tile id of the restored tile";
-            return false;
-        }
-
-        const int cell = sqlQuery.value(QLatin1Literal(TILE_CELL_INDEX_COLUMN_NAME)).toInt(&ok);
-        if (!ok) {
-            qWarning() << "Failed to get the cell index of the restored tile";
-            return false;
-        }
-
-        const int value = sqlQuery.value(QLatin1Literal(TILE_VALUE_COLUMN_NAME)).toInt(&ok);
-        if (!ok) {
-            qWarning() << "Failed to get the tile value of the restored tile";
-            return false;
-        }
-
-        tiles.append(TileSpec(id, cell, value));
+        QVariantMap tileMap;
+        tileMap.insert(QLatin1Literal(TILE_ID_KEY), sqlQuery.value(QLatin1Literal(TILE_ID_COLUMN_NAME)));
+        tileMap.insert(QLatin1Literal(TILE_CELL_KEY), sqlQuery.value(QLatin1Literal(TILE_CELL_COLUMN_NAME)));
+        tileMap.insert(QLatin1Literal(TILE_VALUE_KEY), sqlQuery.value(QLatin1Literal(TILE_VALUE_COLUMN_NAME)));
+        tiles.append(tileMap);
     } while (sqlQuery.next());
 
-    return true;
+    ok = true;
+
+    return tiles;
+}
+
+
+QVariant StorageWorker::getMaxTurnId(bool &ok) const
+{
+    QSqlQuery sqlQuery(m_db);
+
+    const QString &query = QLatin1Literal("SELECT MAX(turn_id) AS turn_id FROM turns");
+
+    if (!sqlQuery.prepare(query)) {
+        qWarning() << "Failed to prepare the max turn id query:" << qPrintable(sqlQuery.lastError().text());
+        ok = false;
+        return QVariant();
+    }
+
+    if (!sqlQuery.exec()) {
+        qWarning() << "Failed to execute the max turn id query:" << qPrintable(sqlQuery.lastError().text());
+        ok = false;
+        return QVariant();
+    }
+
+    if (!sqlQuery.first()) {
+        qWarning() << "Failed to get max turn id. The max turn id not found";
+        ok = false;
+        return QVariant();
+    }
+
+    Q_ASSERT_X(sqlQuery.record().contains(QLatin1Literal(TURN_ID_COLUMN_NAME)), "Get max turn id", "Turn id column not found");
+
+    const QVariant &result = sqlQuery.value(QLatin1Literal(TURN_ID_COLUMN_NAME));
+    ok = result.isValid();
+
+    return result;
 }
 
 
@@ -674,26 +694,16 @@ int StorageWorker::gameStateToInt(GameState gameState) const
 }
 
 
-GameState StorageWorker::gameStateFromInt(int value) const
+QString StorageWorker::gameStateName(const QVariant &gameState) const
 {
-    switch (value) {
-    case GAME_STATE_PLAY_VALUE:
-        return GameState::Play;
-    case GAME_STATE_WIN_VALUE:
-        return GameState::Win;
-    case GAME_STATE_DEFEAT_VALUE:
-        return GameState::Defeat;
-    case GAME_STATE_CONTINUE_VALUE:
-        return GameState::Continue;
-    default:
-        return GameState::Init;
-    }
+    Q_ASSERT(gameState.canConvert<GameState>());
+    return gameStateName(gameState.value<GameState>());
 }
 
 
-QString StorageWorker::gameStateName(GameState state) const
+QString StorageWorker::gameStateName(GameState gameState) const
 {
-    switch (state) {
+    switch (gameState) {
     case GameState::Init:
         return QLatin1Literal(GAME_STATE_INIT_NAME);
     case GameState::Play:
@@ -705,6 +715,13 @@ QString StorageWorker::gameStateName(GameState state) const
     case GameState::Continue:
         return QLatin1Literal(GAME_STATE_CONTINUE_NAME);
     }
+}
+
+
+int StorageWorker::moveDirectionToInt(const QVariant &moveDirection) const
+{
+    Q_ASSERT(moveDirection.canConvert<MoveDirection>());
+    return moveDirectionToInt(moveDirection.value<MoveDirection>());
 }
 
 
@@ -725,20 +742,10 @@ int StorageWorker::moveDirectionToInt(MoveDirection moveDirection) const
 }
 
 
-MoveDirection StorageWorker::moveDirectionFromInt(int value) const
+QString StorageWorker::moveDirectionName(const QVariant &moveDirection) const
 {
-    switch (value) {
-    case MOVE_DIRECTION_LEFT_VALUE:
-        return MoveDirection::Left;
-    case MOVE_DIRECTION_RIGHT_VALUE:
-        return MoveDirection::Right;
-    case MOVE_DIRECTION_UP_VALUE:
-        return MoveDirection::Up;
-    case MOVE_DIRECTION_DOWN_VALUE:
-        return MoveDirection::Down;
-    default:
-        return MoveDirection::None;
-    }
+    Q_ASSERT(moveDirection.canConvert<MoveDirection>());
+    return moveDirectionName(moveDirection.value<MoveDirection>());
 }
 
 
@@ -759,13 +766,18 @@ QString StorageWorker::moveDirectionName(MoveDirection moveDirection) const
 }
 
 
-QString StorageWorker::tilesToString(const QList<TileSpec> &tiles) const
+QString StorageWorker::tilesToString(const QVariantList &tiles) const
 {
     QStringList stringList;
 
-    for (const auto &tile : tiles) {
-        stringList.append(QString(QLatin1Literal("%1 [%2]")).arg(tile.cell()).arg(tile.value()));
+    for (const QVariant &var : tiles) {
+        const QVariantMap &tile = var.toMap();
+        const int cell = tile.value(QLatin1Literal(TILE_CELL_KEY)).toInt();
+        const int value = tile.value(QLatin1Literal(TILE_VALUE_KEY)).toInt();
+        stringList.append(QString(QLatin1Literal("%1 [%2]")).arg(cell).arg(value));
     }
+
+    std::sort(stringList.begin(), stringList.end());
 
     return stringList.join(QLatin1Literal("; "));
 }
@@ -781,6 +793,16 @@ void StorageWorker::handleCreateGameError(bool rollback)
 }
 
 
+void StorageWorker::handleRestoreGameError(bool rollback)
+{
+    if (rollback) {
+        rollbackTransaction();
+    }
+
+    emit restoreGameError();
+}
+
+
 void StorageWorker::handleSaveTurnError(bool rollback)
 {
     if (rollback) {
@@ -791,13 +813,13 @@ void StorageWorker::handleSaveTurnError(bool rollback)
 }
 
 
-void StorageWorker::handleRestoreGameError(bool rollback)
+void StorageWorker::handleUndoTurnError(bool rollback)
 {
     if (rollback) {
         rollbackTransaction();
     }
 
-    emit restoreGameError();
+    emit undoTurnError();
 }
 
 

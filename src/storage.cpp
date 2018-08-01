@@ -33,7 +33,6 @@ namespace Game {
 namespace Internal {
 
 using StorageState = Storage::StorageState;
-using TileSpecs = QList<TileSpec>;
 
 class StoragePrivate final
 {
@@ -58,9 +57,6 @@ StoragePrivate::StoragePrivate(Storage *parent) :
     m_worker(std::make_unique<StorageWorker>()),
     m_state(Storage::StorageState::NotReady)
 {
-    qRegisterMetaType<GameSpec>("GameSpec");
-    qRegisterMetaType<TurnSpec>("TurnSpec");
-
     m_worker->moveToThread(m_workerThread.get());
 
     QObject::connect(m_worker.get(), &StorageWorker::storageReady, q, &Storage::onStorageReady);
@@ -142,15 +138,15 @@ void Storage::restoreGame()
 }
 
 
-void Storage::saveTurn(const TurnSpec &turn)
+void Storage::saveTurn(const QVariantMap &turn)
 {
-    QMetaObject::invokeMethod(d->m_worker.get(), "saveTurn", Qt::QueuedConnection, Q_ARG(TurnSpec, turn));
+    QMetaObject::invokeMethod(d->m_worker.get(), "saveTurn", Qt::QueuedConnection, Q_ARG(QVariantMap, turn));
 }
 
 
-void Storage::undoTurn()
+void Storage::undoTurn(int turnId)
 {
-    QMetaObject::invokeMethod(d->m_worker.get(), "undoTurn", Qt::QueuedConnection);
+    QMetaObject::invokeMethod(d->m_worker.get(), "undoTurn", Qt::QueuedConnection, Q_ARG(int, turnId));
 }
 
 

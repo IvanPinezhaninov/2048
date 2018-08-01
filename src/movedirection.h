@@ -23,7 +23,7 @@
 #ifndef MOVEDIRECTION_H
 #define MOVEDIRECTION_H
 
-#include <QtGlobal>
+#include <QMetaType>
 
 
 namespace Game {
@@ -40,5 +40,7 @@ enum class MoveDirection
 
 } // namespace Internal
 } // namespace Game
+
+Q_DECLARE_METATYPE(Game::Internal::MoveDirection)
 
 #endif // MOVEDIRECTION_H

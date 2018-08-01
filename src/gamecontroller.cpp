@@ -54,6 +54,9 @@ static const int DEFAULT_GAMEBOARD_COLUMNS = 4;
 static const int START_TILES_COUNT = 2;
 static const int WINNING_VALUE = 2048;
 
+static const int FIRST_TURN_ID = 1;
+static const int FIRST_PARENT_TURN_ID = 0;
+
 
 namespace Game {
 
@@ -62,8 +65,16 @@ using GameState = Internal::GameState;
 using Storage = Internal::Storage;
 using StorageState = Internal::Storage::StorageState;
 using Tile = Internal::Tile;
+using Tile_ptr = Internal::Tile_ptr;
 
 namespace Internal {
+
+struct TileData
+{
+    int id;
+    int value;
+    int cell;
+};
 
 class GameControllerPrivate final
 {
@@ -73,20 +84,21 @@ public:
     qreal random();
     int nextTileId();
     bool useRestoreAnimation() const;
-    void createTile(int cellIndex, int value);
-    void createTile(int id, int cellIndex, int value, bool animation);
+    void createTile(int value, int cell);
+    void createTile(int id, int value, int cell, bool animation);
     void createRandomTile();
     void createStartTiles();
-    void setOrphanedTile(const Tile_ptr &tile);
+    void hideTile(const Tile_ptr &tile, bool animation = true);
     void moveTile(const Cell_ptr &sourceCell, const Cell_ptr &targetCell);
     void clearTiles();
     bool isDefeat() const;
     void setGameboardSize(int rows, int columns);
     void createNewGame(int rows, int columns);
     void saveTurn();
-    QList<TileSpec> tileSpecs() const;
     bool isFirstTurn() const;
-
+    QVariantList tilesToList() const;
+    QVariantMap tileToMap(const Tile_ptr &tile) const;
+    TileData tileFromVariant(const QVariant &tile) const;
     void readSettings();
     void saveSettings();
 
@@ -100,11 +112,13 @@ public:
     std::uniform_real_distribution<> m_randomDistribution;
     QList<Cell_ptr> m_cells;
     QList<Tile_ptr> m_tiles;
-    QList<Tile_ptr> m_aboutToOrphanedTiles;
-    QList<Tile_ptr> m_orphanedTiles;
-    QList<TileSpec> m_restoredTiles;
+    QList<Tile_ptr> m_aboutToHiddenTiles;
+    QList<Tile_ptr> m_hiddenTiles;
+    QVariantList m_restoredTiles;
     int m_gameId;
     int m_turnId;
+    int m_parentTurnId;
+    int m_turnIdSequence;
     int m_tileId;
     int m_movingTilesCount;
     MoveDirection m_moveDirection;
@@ -130,6 +144,8 @@ GameControllerPrivate::GameControllerPrivate(GameController *parent) :
   m_randomDistribution(0.0, 1.0),
   m_gameId(0),
   m_turnId(0),
+  m_parentTurnId(0),
+  m_turnIdSequence(0),
   m_tileId(0),
   m_movingTilesCount(0),
   m_moveDirection(MoveDirection::None),
@@ -158,48 +174,48 @@ bool GameControllerPrivate::useRestoreAnimation() const
 }
 
 
-void GameControllerPrivate::createTile(int cellIndex, int value)
+void GameControllerPrivate::createTile(int value, int cell)
 {
     const int id = nextTileId();
-    createTile(id, cellIndex, value, true);
+    createTile(id, value, cell, true);
 }
 
 
-void GameControllerPrivate::createTile(int id, int cellIndex, int value, bool animation)
+void GameControllerPrivate::createTile(int id, int value, int cell, bool animation)
 {
     Tile_ptr tile;
 
-    if (m_orphanedTiles.empty()) {
+    if (m_hiddenTiles.empty()) {
         auto tileItem = q_check_ptr(qobject_cast<QQuickItem*>(m_tileQmlComponent->create()));
-        tile = std::make_shared<Tile>(id, tileItem, q_check_ptr(m_game->tilesParent()), animation);
+        tile = std::make_shared<Tile>(id, value, tileItem, q_check_ptr(m_game->tilesParent()));
         QObject::connect(tile.get(), &Tile::moveFinished, q, &GameController::onTileMoveFinished);
     } else {
-        tile = m_orphanedTiles.takeLast();
+        tile = m_hiddenTiles.takeLast();
         tile->setId(id);
+        tile->setValue(value);
     }
 
     m_tiles.append(tile);
 
-    const auto &cell = m_cells.at(cellIndex);
-    cell->setTile(tile);
-    tile->setValue(value);
+    tile->setCell(m_cells.at(cell));
+    tile->show(animation);
 }
 
 
 void GameControllerPrivate::createRandomTile()
 {
-    QList<int> indexes;
+    QList<int> cells;
 
     for (const auto &cell : m_cells) {
         if (!cell->tile()) {
-            indexes.append(cell->index());
+            cells.append(cell->index());
         }
     }
 
-    const int index = indexes.at(int(std::floor(random() * (indexes.size() - 1))));
     const int value = random() < 0.9 ? 2 : 4;
+    const int cell = cells.at(int(std::floor(random() * (cells.size() - 1))));
 
-    createTile(index, value);
+    createTile(value, cell);
 }
 
 
@@ -211,31 +227,42 @@ void GameControllerPrivate::createStartTiles()
 }
 
 
-void GameControllerPrivate::setOrphanedTile(const Tile_ptr &tile)
+void GameControllerPrivate::hideTile(const Tile_ptr &tile, bool animation)
 {
-    if (!m_orphanedTiles.contains(tile)) {
-        tile->resetValue();
-        m_orphanedTiles.append(tile);
+    Q_ASSERT(tile);
+
+    if (!m_hiddenTiles.contains(tile)) {
+        m_hiddenTiles.append(tile);
+        tile->hide(animation);
+        tile->setCell(nullptr);
+    } else {
+        Q_ASSERT(false);
     }
 }
 
 
 void GameControllerPrivate::moveTile(const Cell_ptr &sourceCell, const Cell_ptr &targetCell)
 {
-    const auto &tile = sourceCell->tile();
-    sourceCell->setTile(nullptr);
-    targetCell->setTile(tile);
-    ++m_movingTilesCount;
+    Q_ASSERT(sourceCell);
+    Q_ASSERT(targetCell);
+
+    if (sourceCell != targetCell) {
+        const auto &tile = sourceCell->tile();
+        Q_ASSERT(tile);
+        sourceCell->setTile(nullptr);
+        targetCell->setTile(tile);
+        Q_ASSERT(tile->cell() == targetCell);
+        ++m_movingTilesCount;
+    }
 }
 
 
 void GameControllerPrivate::clearTiles()
 {
     for (const auto &tile : m_tiles) {
-        tile->resetValue();
-        tile->setCell(nullptr);
-        m_orphanedTiles.append(tile);
+        hideTile(tile, false);
     }
+
     m_tiles.clear();
 }
 
@@ -315,28 +342,67 @@ void GameControllerPrivate::saveTurn()
     Q_ASSERT(0 != m_gameId);
     Q_ASSERT(0 != m_turnId);
 
-    TurnSpec turn(m_gameId, m_turnId, m_game->score(), m_game->bestScore(),
-                  m_game->gameState(), m_moveDirection, tileSpecs());
+    QVariantMap game;
+    game.insert(QLatin1Literal(Internal::GAME_ID_KEY), m_gameId);
+    game.insert(QLatin1Literal(Internal::TURN_ID_KEY), m_turnId);
+    game.insert(QLatin1Literal(Internal::PARENT_TURN_ID_KEY), m_parentTurnId);
+    game.insert(QLatin1Literal(Internal::GAME_STATE_KEY), QVariant::fromValue<GameState>(m_game->gameState()));
+    game.insert(QLatin1Literal(Internal::MOVE_DIRECTION_KEY), QVariant::fromValue<MoveDirection>(m_moveDirection));
+    game.insert(QLatin1Literal(Internal::SCORE_KEY), m_game->score());
+    game.insert(QLatin1Literal(Internal::BEST_SCORE_KEY), m_game->bestScore());
+    game.insert(QLatin1Literal(Internal::TILES_KEY), tilesToList());
 
-    m_storage->saveTurn(turn);
+    m_storage->saveTurn(game);
 }
 
 
-QList<TileSpec> GameControllerPrivate::tileSpecs() const
+bool GameControllerPrivate::isFirstTurn() const
 {
-    QList<TileSpec> tiles;
+    return FIRST_TURN_ID == m_turnId;
+}
+
+
+QVariantList GameControllerPrivate::tilesToList() const
+{
+    QVariantList tiles;
 
     for (const auto &tile : m_tiles) {
-        tiles.append(TileSpec(tile->id(), tile->cell()->index(), tile->value()));
+        tiles.append(tileToMap(tile));
     }
 
     return tiles;
 }
 
 
-bool GameControllerPrivate::isFirstTurn() const
+QVariantMap GameControllerPrivate::tileToMap(const Tile_ptr &tile) const
 {
-    return m_turnId < 2;
+    Q_ASSERT(tile);
+    Q_ASSERT(tile->cell());
+
+    QVariantMap map;
+    map.insert(QLatin1Literal(TILE_ID_KEY), tile->id());
+    map.insert(QLatin1Literal(TILE_VALUE_KEY), tile->value());
+    map.insert(QLatin1Literal(TILE_CELL_KEY), tile->cell()->index());
+
+    return map;
+}
+
+
+TileData GameControllerPrivate::tileFromVariant(const QVariant &tile) const
+{
+    Q_ASSERT(tile.canConvert<QVariantMap>());
+
+    const QVariantMap &map = tile.toMap();
+
+    Q_ASSERT_X(map.contains(QLatin1Literal(TILE_ID_KEY)), "Tile from map", "Tile id key not found");
+    Q_ASSERT_X(map.contains(QLatin1Literal(TILE_VALUE_KEY)), "Tile from map", "Tile value key not found");
+    Q_ASSERT_X(map.contains(QLatin1Literal(TILE_CELL_KEY)), "Tile from map", "Tile cell key not found");
+
+    const int id = map.value(QLatin1Literal(TILE_ID_KEY)).toInt();
+    const int value = map.value(QLatin1Literal(TILE_VALUE_KEY)).toInt();
+    const int cell = map.value(QLatin1Literal(TILE_CELL_KEY)).toInt();
+
+    return TileData({ id, value, cell });
 }
 
 
@@ -456,7 +522,7 @@ void GameController::onUndoRequested()
 {
     if (!d->m_moveBlocked && d->m_undoEnabled && !d->isFirstTurn()) {
         d->m_moveBlocked = true;
-        d->m_storage->undoTurn();
+        d->m_storage->undoTurn(d->m_turnId);
     }
 }
 
@@ -486,7 +552,8 @@ void GameController::onMoveTilesRequested(MoveDirection direction)
         break;
     case MoveDirection::None:
         Q_ASSERT(false);
-        break;
+        d->m_moveBlocked = false;
+        return;
     }
 
     for (int row = 0; row < rows; ++row) {
@@ -555,8 +622,10 @@ void GameController::onMoveTilesRequested(MoveDirection direction)
                 const auto &tile = cell->tile();
                 tile->setValue(tile->value() * 2);
                 tile->setZ(previousCell->tile()->z() + 1);
-                d->m_aboutToOrphanedTiles.append(previousCell->tile());
+                d->m_aboutToHiddenTiles.append(previousCell->tile());
                 d->m_tiles.removeOne(previousCell->tile());
+                previousCell->tile()->setCell(nullptr);
+                previousCell->setTile(nullptr);
                 d->moveTile(cell, previousCell);
                 switch (direction) {
                 case MoveDirection::Left:
@@ -617,7 +686,8 @@ void GameController::onMoveTilesRequested(MoveDirection direction)
         }
     }
 
-    ++d->m_turnId;
+    d->m_parentTurnId = d->m_turnId;
+    d->m_turnId = ++d->m_turnIdSequence;
 
     if (0 == d->m_movingTilesCount)
       d->m_moveBlocked = false;
@@ -638,12 +708,12 @@ void GameController::onTileMoveFinished()
 
     if (0 == --d->m_movingTilesCount) {
         int score = d->m_game->score();
-        for (const auto &tile : d->m_aboutToOrphanedTiles) {
+        for (const auto &tile : d->m_aboutToHiddenTiles) {
             score += tile->value() * 2;
-            d->setOrphanedTile(tile);
+            d->hideTile(tile, false);
         }
 
-        d->m_aboutToOrphanedTiles.clear();
+        d->m_aboutToHiddenTiles.clear();
         d->m_game->setScore(score);
 
         bool moveBlocked = false;
@@ -693,10 +763,9 @@ void GameController::onStorageError()
 }
 
 
-void GameController::onGameCreated(const GameSpec &game)
+void GameController::onGameCreated(const QVariantMap &game)
 {
-    d->m_gameId = game.gameId();
-    d->m_turnId = game.turnId();
+    d->m_gameId = game.value(QLatin1Literal(Internal::GAME_ID_KEY)).toInt();
 
     const int delay = (GameState::Init == d->m_game->gameState()) ? SHOW_START_TILES_DELAY : 0;
     QTimer::singleShot(delay, this, SLOT(startNewGame()));
@@ -710,22 +779,37 @@ void GameController::onCreateGameError()
 }
 
 
-void GameController::onGameRestored(const GameSpec &game)
+void GameController::onGameRestored(const QVariantMap &game)
 {
     Q_ASSERT(GameState::Init == d->m_game->gameState());
-    Q_ASSERT(0 < game.rows() && 0 < game.columns());
-    Q_ASSERT(!game.tiles().isEmpty());
     Q_ASSERT(!d->m_game->isVisible());
 
-    d->m_gameId = game.gameId();
-    d->m_turnId = game.turnId();
-    d->m_restoredTiles = game.tiles();
-    d->setGameboardSize(game.rows(), game.columns());
-    d->m_game->setScore(game.score());
-    d->m_game->setBestScore(game.bestScore());
-    d->m_game->setGameState(game.gameState());
+    Q_ASSERT_X(game.contains(QLatin1Literal(Internal::GAME_ID_KEY)), "Restore game", "Game id key not found");
+    Q_ASSERT_X(game.contains(QLatin1Literal(Internal::TURN_ID_KEY)), "Restore game", "Turn id key not found");
+    Q_ASSERT_X(game.contains(QLatin1Literal(Internal::PARENT_TURN_ID_KEY)), "Restore game", "Parent turn id key not found");
+    Q_ASSERT_X(game.contains(QLatin1Literal(Internal::MAX_TURN_ID_KEY)), "Restore game", "Max turn id key not found");
+    Q_ASSERT_X(game.contains(QLatin1Literal(Internal::TILES_KEY)), "Restore game", "Tiles key not found");
+    Q_ASSERT_X(game.contains(QLatin1Literal(Internal::ROWS_KEY)), "Restore game", "Rows key not found");
+    Q_ASSERT_X(game.contains(QLatin1Literal(Internal::COLUMNS_KEY)), "Restore game", "Columns key not found");
+    Q_ASSERT_X(game.contains(QLatin1Literal(Internal::SCORE_KEY)), "Restore game", "Score key not found");
+    Q_ASSERT_X(game.contains(QLatin1Literal(Internal::BEST_SCORE_KEY)), "Restore game", "Best score key not found");
+    Q_ASSERT_X(game.contains(QLatin1Literal(Internal::GAME_STATE_KEY)), "Restore game", "Game state key not found");
+
+    d->m_gameId = game.value(QLatin1Literal(Internal::GAME_ID_KEY)).toInt();
+    d->m_turnId = game.value(QLatin1Literal(Internal::TURN_ID_KEY)).toInt();
+    d->m_parentTurnId = game.value(QLatin1Literal(Internal::PARENT_TURN_ID_KEY)).toInt();
+    d->m_turnIdSequence = game.value(QLatin1Literal(Internal::MAX_TURN_ID_KEY)).toInt();
+    d->m_restoredTiles = game.value(QLatin1Literal(Internal::TILES_KEY)).toList();
+    d->setGameboardSize(game.value(QLatin1Literal(Internal::ROWS_KEY)).toInt(),
+                        game.value(QLatin1Literal(Internal::COLUMNS_KEY)).toInt());
+    d->m_game->setScore(game.value(QLatin1Literal(Internal::SCORE_KEY)).toInt());
+    d->m_game->setBestScore(game.value(QLatin1Literal(Internal::BEST_SCORE_KEY)).toInt());
+    d->m_game->setGameState(game.value(QLatin1Literal(Internal::GAME_STATE_KEY)).value<GameState>());
     d->m_game->setUndoButtonEnabled(!d->isFirstTurn(), false);
     d->m_game->show();
+
+    Q_ASSERT(0 < d->m_game->gameboardRows() && 0 < d->m_game->gameboardColumns());
+    Q_ASSERT(!d->m_restoredTiles.isEmpty());
 
     const int timeout = d->useRestoreAnimation() ? SHOW_START_TILES_DELAY : 0;
     QTimer::singleShot(timeout, this, SLOT(restoreGame()));
@@ -758,12 +842,10 @@ void GameController::onSaveTurnError()
 }
 
 
-void GameController::onTurnUndid(const TurnSpec &turnSpec)
+void GameController::onTurnUndid(const QVariantMap &turn)
 {
-    d->m_undoStarted = true;
-    d->m_turnId = turnSpec.turnId();
-
     // TODO: realisation
+    d->m_moveBlocked = false;
 }
 
 
@@ -781,6 +863,9 @@ void GameController::startNewGame()
     d->m_game->setGameState(GameState::Play);
     d->m_game->setUndoButtonEnabled(false);
     d->m_moveDirection = MoveDirection::None;
+    d->m_turnId = FIRST_TURN_ID;
+    d->m_parentTurnId = FIRST_PARENT_TURN_ID;
+    d->m_turnIdSequence = FIRST_TURN_ID;
     d->m_undoEnabled = true;
     d->clearTiles();
     d->createStartTiles();
@@ -800,10 +885,11 @@ void GameController::restoreGame()
     int maxValue = 0;
     const bool animation = d->useRestoreAnimation();
 
-    for (const auto &tile : d->m_restoredTiles) {
-        d->createTile(tile.id(), tile.cell(), tile.value(), animation);
-        if (maxValue < tile.value()) {
-            maxValue = tile.value();
+    for (const QVariant &var : d->m_restoredTiles) {
+        const auto &tile = d->tileFromVariant(var);
+        d->createTile(tile.id, tile.value, tile.cell, animation);
+        if (maxValue < tile.value) {
+            maxValue = tile.value;
         }
     }
 

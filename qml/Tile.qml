@@ -26,7 +26,11 @@ import 'qrc:/qml/Constants.js' as Constants
 Rectangle {
     id: tile
 
+    property int id: 0
     property int value: 0
+    property int previousValue: 0
+    property bool hidden: true
+    property bool animation: true
     property int moveAnimationDuration: 100
 
     readonly property real largeFontRatio: 0.52
@@ -43,6 +47,19 @@ Rectangle {
     radius: Math.min(width, height) * Constants.tileRadiusRatio
 
     Text {
+        id: tileId
+
+        anchors.right: parent.right
+        anchors.rightMargin: Math.round(Math.min(parent.width, parent.height) * 0.05)
+        anchors.top: parent.top
+        font.family: Constants.fontFamily
+        font.weight: Font.Bold
+        font.pixelSize: Math.round(Math.min(parent.width, parent.height) * 0.15)
+        color: '#bbada0'
+        text: tile.id === 0 ? "" : tile.id
+    }
+
+    Text {
         id: tileText
 
         anchors.centerIn: parent
@@ -55,7 +72,7 @@ Rectangle {
     }
 
     Behavior on x {
-        enabled: 0 < tile.value
+        enabled: !hidden
         NumberAnimation {
             duration: moveAnimationDuration
             easing.type: Easing.InOutQuad
@@ -64,22 +81,12 @@ Rectangle {
     }
 
     Behavior on y {
-        enabled: 0 < tile.value
+        enabled: !hidden
         NumberAnimation {
             duration: moveAnimationDuration
             easing.type: Easing.InOutQuad
             onRunningChanged: onMoveAnimationRunningChanged(running)
         }
-    }
-
-    PropertyAnimation {
-        id: scaleAnimation
-
-        target: scaleTransform
-        property: 'scale'
-        from: 0.0
-        to: 1.0
-        duration: 200
     }
 
     SequentialAnimation {
@@ -116,60 +123,54 @@ Rectangle {
 
     states: [
         State {
-            name: 'static'
-            when: tile.value === -1
-            PropertyChanges { target: tile; visible: false }
-        },
-
-        State {
-            name: 'orphaned'
-            when: tile.value === 0
+            name: 'hidden'
+            when: hidden
             PropertyChanges { target: tile; visible: false }
         },
 
         State {
             name: '2'
-            when: tile.value === 2
+            when: !hidden && tile.value === 2
         },
 
         State {
             name: '4'
-            when: tile.value === 4
+            when: !hidden && tile.value === 4
             PropertyChanges { target: tile; color: '#ede0c8' }
             PropertyChanges { target: tileText;  color: '#776e65' }
         },
 
         State {
             name: '8'
-            when: tile.value === 8
+            when: !hidden && tile.value === 8
             PropertyChanges { target: tile; color: '#f2b179' }
             PropertyChanges { target: tileText;  color: '#f9f6f2' }
         },
 
         State {
             name: '16'
-            when: tile.value === 16
+            when: !hidden && tile.value === 16
             PropertyChanges { target: tile; color: '#f59563' }
             PropertyChanges { target: tileText;  color: '#f9f6f2' }
         },
 
         State {
             name: '32'
-            when: tile.value === 32
+            when: !hidden && tile.value === 32
             PropertyChanges { target: tile; color: '#f67c5f' }
             PropertyChanges { target: tileText;  color: '#f9f6f2' }
         },
 
         State {
             name: '64'
-            when: tile.value === 64
+            when: !hidden && tile.value === 64
             PropertyChanges { target: tile; color: '#f65e3b' }
             PropertyChanges { target: tileText;  color: '#f9f6f2' }
         },
 
         State {
             name: '128'
-            when: tile.value === 128
+            when: !hidden && tile.value === 128
             PropertyChanges { target: tile; color: '#edcf72' }
             PropertyChanges { target: tileText;  font.pixelSize: Math.round(tile.width * mediumFontRatio) }
             PropertyChanges { target: tileText;  color: '#f9f6f2' }
@@ -177,7 +178,7 @@ Rectangle {
 
         State {
             name: '256'
-            when: tile.value === 256
+            when: !hidden && tile.value === 256
             PropertyChanges { target: tile; color: '#edcc61' }
             PropertyChanges { target: tileText;  font.pixelSize: Math.round(tile.width * mediumFontRatio) }
             PropertyChanges { target: tileText;  color: '#f9f6f2' }
@@ -185,7 +186,7 @@ Rectangle {
 
         State {
             name: '512'
-            when: tile.value === 512
+            when: !hidden && tile.value === 512
             PropertyChanges { target: tile; color: '#edc850' }
             PropertyChanges { target: tileText;  font.pixelSize: Math.round(tile.width * mediumFontRatio) }
             PropertyChanges { target: tileText;  color: '#f9f6f2' }
@@ -193,7 +194,7 @@ Rectangle {
 
         State {
             name: '1024'
-            when: tile.value === 1024
+            when: !hidden && tile.value === 1024
             PropertyChanges { target: tile; color: '#edc53f' }
             PropertyChanges { target: tileText;  font.pixelSize: Math.round(tile.width * smallFontRatio) }
             PropertyChanges { target: tileText;  color: '#f9f6f2' }
@@ -201,7 +202,7 @@ Rectangle {
 
         State {
             name: '2048'
-            when: tile.value === 2048
+            when: !hidden && tile.value === 2048
             PropertyChanges { target: tile; color: '#edc22e' }
             PropertyChanges { target: tileText;  font.pixelSize: Math.round(tile.width * smallFontRatio) }
             PropertyChanges { target: tileText;  color: '#f9f6f2' }
@@ -209,7 +210,7 @@ Rectangle {
 
         State {
             name: '4096+'
-            when: tile.value >= 4096 && tile.value < 131072
+            when: !hidden && tile.value >= 4096 && tile.value < 131072
             PropertyChanges { target: tile; color: '#3c3a32' }
             PropertyChanges { target: tileText;  font.pixelSize: Math.round(tile.width * xSmallFontRatio) }
             PropertyChanges { target: tileText;  color: '#f9f6f2' }
@@ -217,21 +218,21 @@ Rectangle {
 
         State {
             name: '131072+'
-            when: tile.value >= 131072 && tile.value < 1048576
+            when: !hidden && tile.value >= 131072 && tile.value < 1048576
             extend: '4096+'
             PropertyChanges { target: tileText;  font.pixelSize: Math.round(tile.width * xxSmallFontRatio) }
         },
 
         State {
             name: '1048576+'
-            when: tile.value >= 1048576 && tile.value < 16777216
+            when: !hidden && tile.value >= 1048576 && tile.value < 16777216
             extend: '4096+'
             PropertyChanges { target: tileText;  font.pixelSize: Math.round(tile.width * xxxSmallFontRatio) }
         },
 
         State {
             name: '16777216+'
-            when: tile.value >= 16777216
+            when: !hidden && tile.value >= 16777216
             extend: '4096+'
             PropertyChanges { target: tileText;  font.pixelSize: Math.round(tile.width * xxxxSmallFontRatio) }
         }
@@ -239,21 +240,34 @@ Rectangle {
 
     transitions: [
         Transition {
-            from: 'static'
+            from: 'hidden'
             to: '*'
-            PropertyAction { target: scaleAnimation; property: 'running'; value: false }
-            PropertyAction { target: bounceAnimation; property: 'running'; value: false }
+            SequentialAnimation {
+                PropertyAction { target: bounceAnimation; property: 'running'; value: false }
+                PropertyAction { target: tileText; property: 'text' }
+                PropertyAction { target: tile; property: 'visible' }
+                NumberAnimation { target: scaleTransform; property: 'scale'; from: 0.0; to: 1.0; duration: animation ? 200 : 0 }
+            }
         },
 
         Transition {
-            from: 'orphaned'
-            to: '*'
-            PropertyAction { target: scaleAnimation; property: 'running'; value: true }
-            PropertyAction { target: bounceAnimation; property: 'running'; value: false }
+            from: '*'
+            to: 'hidden'
+            SequentialAnimation {
+                PropertyAction { target: bounceAnimation; property: 'running'; value: false }
+                NumberAnimation { target: scaleTransform; property: 'scale'; from: 1.0; to: 0.0; duration: animation ? 200 : 0 }
+                PropertyAction { target: tile; property: 'visible' }
+                PropertyAction { target: tileText; property: 'text' }
+            }
         }
     ]
 
-    onValueChanged: bounceAnimation.running = true
+    onValueChanged: {
+        if (previousValue < value) {
+            bounceAnimation.running = true
+        }
+        previousValue = value;
+    }
 
     function onMoveAnimationRunningChanged(running)
     {

@@ -20,47 +20,31 @@
 ***************************************************************************/
 
 
-#ifndef GAMESPEC_H
-#define GAMESPEC_H
-
-#include <memory>
-
-#include <QList>
-#include <QMetaType>
-
-#include "gamestate.h"
-
+#ifndef STORAGECONSTANTS_H
+#define STORAGECONSTANTS_H
 
 namespace Game {
 namespace Internal {
 
-class GameSpecPrivate;
-class TileSpec;
-
-class GameSpec final
-{
-public:
-    GameSpec();
-    GameSpec(int gameId, int rows, int columns, int turnId);
-    GameSpec(int gameId, int rows, int columns, int turnId, int score, int bestScore,
-             GameState gameState, const QList<TileSpec> &tiles = QList<TileSpec>());
-
-    int gameId() const;
-    int rows() const;
-    int columns() const;
-    int turnId() const;
-    int score() const;
-    int bestScore() const;
-    GameState gameState() const;
-    QList<TileSpec> tiles() const;
-
-private:
-    std::shared_ptr<GameSpecPrivate> d;
-};
+const char *const BEST_SCORE_KEY = "bestScore";
+const char *const COLUMNS_KEY = "columns";
+const char *const GAME_ID_KEY = "gameId";
+const char *const GAME_STATE_KEY = "gameState";
+const char *const MAX_TURN_ID_KEY = "maxKeyId";
+const char *const MOVE_DIRECTION_KEY = "moveDirection";
+const char *const PARENT_TURN_ID_KEY = "parentTurnId";
+const char *const ROWS_KEY = "rows";
+const char *const SCORE_KEY = "score";
+const char *const TILE_CELL_KEY = "tileCell";
+const char *const TILE_ID_KEY = "tileId";
+const char *const TILE_VALUE_KEY = "tileValue";
+const char *const TILES_KEY = "tiles";
+const char *const TURN_ID_KEY = "turnId";
+const char *const UNDO_CREATED_TILES_KEY = "created";
+const char *const UNDO_REGULAR_TILES_KEY = "regular";
+const char *const UNDO_REMOVED_TILES_KEY = "removed";
 
 } // namespace Internal
 } // namespace Game
 
-Q_DECLARE_METATYPE(Game::Internal::GameSpec)
-
-#endif // GAMESPEC_H
+#endif // STORAGECONSTANTS_H

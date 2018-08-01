@@ -42,7 +42,7 @@ class Tile final : public QObject, public std::enable_shared_from_this<Tile>
 {
     Q_OBJECT
 public:
-    Tile(int id, QQuickItem *tileItem, QQuickItem *parent, bool animation = true);
+    Tile(int id, int value, QQuickItem *tileItem, QQuickItem *parent);
     ~Tile();
 
     int id() const;
@@ -50,7 +50,9 @@ public:
 
     int value() const;
     void setValue(int value);
-    void resetValue();
+
+    void hide(bool animation = true);
+    void show(bool animation = true);
 
     Cell_ptr cell() const;
     void setCell(const Cell_ptr &cell);

@@ -29,16 +29,10 @@
 
 #include "gamestate.h"
 #include "movedirection.h"
-#include "tilespec.h"
 
 
 namespace Game {
 namespace Internal {
-
-class GameSpec;
-class TurnSpec;
-
-using TileSpecs = QList<TileSpec>;
 
 class StorageWorker final : public QObject
 {
@@ -50,16 +44,16 @@ signals:
     void storageReady();
     void storageError();
 
-    void gameCreated(const GameSpec &game);
+    void gameCreated(const QVariantMap &game);
     void createGameError();
 
     void turnSaved();
     void saveTurnError();
 
-    void gameRestored(const GameSpec &game);
+    void gameRestored(const QVariantMap &game);
     void restoreGameError();
 
-    void turnUndid(const TurnSpec &turn);
+    void turnUndid(const QVariantMap &turn);
     void undoTurnError();
 
 public slots:
@@ -67,8 +61,8 @@ public slots:
     void closeDatabase();
     void createGame(int rows, int columns);
     void restoreGame();
-    void saveTurn(const TurnSpec &turn);
-    void undoTurn();
+    void saveTurn(const QVariantMap &turn);
+    void undoTurn(int turnId);
 
 private:
     Q_DISABLE_COPY(StorageWorker)
@@ -79,29 +73,32 @@ private:
     bool executeFileQueries(const QString &fileName);
 
     bool finishGame();
-    bool createGame(int rows, int columns, int &gameId);
+    bool createGame(int rows, int columns, QVariant &gameId);
 
-    bool saveGameState(int gameId, GameState state);
-    bool saveTiles(int turnId, const TileSpecs &tiles);
-    bool restoreTiles(int turnId, TileSpecs &tiles);
+    bool saveGameState(const QVariant &gameId, GameState state);
+    bool saveTiles(const QVariant &turnId, const QVariantList &tiles);
+    QVariantList restoreTiles(const QVariant &turnId, bool &ok);
+    QVariant getMaxTurnId(bool &ok) const;
 
     void removeTurns();
     void removeTiles();
     void vacuum();
 
     int gameStateToInt(GameState gameState) const;
-    GameState gameStateFromInt(int value) const;
-    QString gameStateName(GameState state) const;
+    QString gameStateName(const QVariant &gameState) const;
+    QString gameStateName(GameState gameState) const;
 
+    int moveDirectionToInt(const QVariant &moveDirection) const;
     int moveDirectionToInt(MoveDirection moveDirection) const;
-    MoveDirection moveDirectionFromInt(int value) const;
+    QString moveDirectionName(const QVariant &moveDirection) const;
     QString moveDirectionName(MoveDirection moveDirection) const;
 
-    QString tilesToString(const QList<TileSpec> &tiles) const;
+    QString tilesToString(const QVariantList &tiles) const;
 
     void handleCreateGameError(bool rollback = true);
-    void handleSaveTurnError(bool rollback = true);
     void handleRestoreGameError(bool rollback = true);
+    void handleSaveTurnError(bool rollback = true);
+    void handleUndoTurnError(bool rollback = true);
 
     bool startTransaction();
     bool commitTransaction();
@@ -113,7 +110,5 @@ private:
 
 } // namespace Internal
 } // namespace Game
-
-Q_DECLARE_METATYPE(Game::Internal::TileSpecs);
 
 #endif // STORAGEWORKER_H

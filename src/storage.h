@@ -27,9 +27,7 @@
 
 #include <QObject>
 
-#include "gamespec.h"
-#include "tilespec.h"
-#include "turnspec.h"
+#include "storageconstants.h"
 
 
 namespace Game {
@@ -59,23 +57,23 @@ signals:
     void storageReady();
     void storageError();
 
-    void gameCreated(const GameSpec &game);
+    void gameCreated(const QVariantMap &game);
     void createGameError();
 
     void turnSaved();
     void saveTurnError();
 
-    void gameRestored(const GameSpec &game);
+    void gameRestored(const QVariantMap &game);
     void restoreGameError();
 
-    void turnUndid(const TurnSpec &turn);
+    void turnUndid(const QVariantMap &turn);
     void undoTurnError();
 
 public slots:
     void createGame(int rows, int columns);
     void restoreGame();
-    void saveTurn(const TurnSpec &turn);
-    void undoTurn();
+    void saveTurn(const QVariantMap &turn);
+    void undoTurn(int turnId);
 
 private slots:
     void onStorageReady();
